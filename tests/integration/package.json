@@ -1,0 +1,57 @@
+{
+  "name": "@firemni-asistent/integration-tests",
+  "version": "1.0.0",
+  "description": "End-to-end integration testing framework orchestrating Performance + Chaos + Security testing systems",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:full-suite",
+    "test:full-suite": "node orchestrator/run-full-suite.js",
+    "test:production-readiness": "node orchestrator/production-readiness-validator.js",
+    "test:performance-only": "node orchestrator/run-performance-tests.js",
+    "test:chaos-only": "node orchestrator/run-chaos-tests.js",
+    "test:security-only": "node orchestrator/run-security-tests.js",
+    "validate:deployment": "node validators/deployment-readiness.js",
+    "validate:infrastructure": "node validators/infrastructure-readiness.js",
+    "validate:monitoring": "node validators/monitoring-readiness.js",
+    "dashboard:start": "node dashboard/production-readiness-dashboard.js",
+    "dashboard:report": "node dashboard/generate-readiness-report.js",
+    "schedule:continuous": "node schedulers/continuous-validation.js",
+    "schedule:pre-deploy": "node schedulers/pre-deployment-suite.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "concurrently": "^8.2.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.0",
+    "fs-extra": "^11.1.0",
+    "glob": "^10.3.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "node-cron": "^3.0.3",
+    "pino": "^8.16.0",
+    "pino-pretty": "^10.3.1",
+    "socket.io": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "keywords": [
+    "integration-testing",
+    "production-readiness",
+    "performance-testing",
+    "chaos-engineering",
+    "security-testing",
+    "deployment-validation",
+    "end-to-end"
+  ]
+}

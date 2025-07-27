@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@playwright/test": "^1.40.0",
-    "k6": "^0.47.0",
+
     "cross-env": "^7.0.3",
     "dotenv": "^16.3.1",
     "axios": "^1.6.0",

@@ -19,7 +19,6 @@
     "validate": "node scripts/validate-security.js"
   },
   "dependencies": {
-    "sarif": "^2.1.25",
     "@microsoft/sarif-multitool": "^4.5.4",
     "node-html-parser": "^6.1.12",
     "csv-writer": "^1.6.0",
@@ -30,7 +29,6 @@
     "semver": "^7.5.4"
   },
   "devDependencies": {
-    "semgrep": "^1.45.0"
   },
   "engines": {
     "node": ">=18.0.0"
