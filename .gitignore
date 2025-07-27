@@ -1,0 +1,184 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# TypeScript compiled files
+dist/
+build/
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Logs
+logs/
+*.log
+
+# Database
+*.sqlite
+*.db
+
+# Docker
+.dockerignore
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Security and configuration
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# Test artifacts
+test-results/
+screenshots/
+videos/
+
+# Performance test results
+tests/performance/results/
+tests/performance/baselines/
+tests/performance/reports/
+
+# Security scan results
+security/results/
+security/baselines/
+security/reports/
+
+# Chaos engineering results
+chaos-engineering/results/
+chaos-engineering/logs/
+
+# Monitoring and metrics
+metrics/
+monitoring/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Cloud deployment artifacts
+cloudbuild.yaml.tmp
+deployment.yaml.tmp
+
+# Local development
+.local
+.dev
+
+# Package-lock files (using workspaces)
+package-lock.json
+yarn.lock
+
+# Prisma
+prisma/migrations/
+
+# OS generated files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db

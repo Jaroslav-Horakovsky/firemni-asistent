@@ -1,0 +1,208 @@
+{
+  "name": "firemni-asistent",
+  "version": "1.0.0",
+  "description": "Comprehensive business management system with microservices architecture",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "gateway",
+    "clients/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "---comment---": "=== DEVELOPMENT ===",
+    "dev": "docker-compose -f docker-compose.dev.yml up -d && npm run dev:services",
+    "dev:services": "concurrently \"npm run dev:user-service\" \"npm run dev:customer-service\" \"npm run dev:order-service\" \"npm run dev:inventory-service\" \"npm run dev:billing-service\" \"npm run dev:notification-service\" \"npm run dev:gateway\"",
+    "dev:gateway": "cd gateway && npm run dev",
+    "dev:user-service": "cd services/user-service && npm run dev",
+    "dev:customer-service": "cd services/customer-service && npm run dev",
+    "dev:order-service": "cd services/order-service && npm run dev",
+    "dev:inventory-service": "cd services/inventory-service && npm run dev",
+    "dev:billing-service": "cd services/billing-service && npm run dev",
+    "dev:notification-service": "cd services/notification-service && npm run dev",
+    
+    "---comment---": "=== LOGGING & DEBUGGING ===",
+    "logs": "docker-compose -f docker-compose.dev.yml logs -f --tail=100",
+    "logs:user": "docker-compose -f docker-compose.dev.yml logs -f --tail=100 user-service",
+    "logs:customer": "docker-compose -f docker-compose.dev.yml logs -f --tail=100 customer-service",
+    "logs:order": "docker-compose -f docker-compose.dev.yml logs -f --tail=100 order-service",
+    "logs:inventory": "docker-compose -f docker-compose.dev.yml logs -f --tail=100 inventory-service",
+    "logs:billing": "docker-compose -f docker-compose.dev.yml logs -f --tail=100 billing-service",
+    "logs:notification": "docker-compose -f docker-compose.dev.yml logs -f --tail=100 notification-service",
+    "logs:gateway": "docker-compose -f docker-compose.dev.yml logs -f --tail=100 api-gateway",
+    "logs:postgres": "docker-compose -f docker-compose.dev.yml logs -f --tail=50 postgres",
+    "logs:rabbitmq": "docker-compose -f docker-compose.dev.yml logs -f --tail=50 rabbitmq",
+    "logs:redis": "docker-compose -f docker-compose.dev.yml logs -f --tail=50 redis",
+    
+    "logs:errors": "docker-compose -f docker-compose.dev.yml logs --tail=200 | grep -i error",
+    "logs:warnings": "docker-compose -f docker-compose.dev.yml logs --tail=200 | grep -i warn",
+    "logs:since": "docker-compose -f docker-compose.dev.yml logs --since=\"1h\"",
+    "logs:grep": "docker-compose -f docker-compose.dev.yml logs | grep",
+    
+    "logs:analyze": "node scripts/analyze-logs.js",
+    "logs:correlate": "node scripts/correlate-logs.js",
+    "logs:performance": "docker-compose -f docker-compose.dev.yml logs | grep duration | sort -k4 -nr | head -20",
+    
+    "---comment---": "=== DATABASE ===",
+    "db:migrate": "npm run db:migrate:user && npm run db:migrate:customer && npm run db:migrate:order && npm run db:migrate:inventory && npm run db:migrate:billing && npm run db:migrate:notification",
+    "db:migrate:user": "cd services/user-service && npx prisma migrate deploy",
+    "db:migrate:customer": "cd services/customer-service && npx prisma migrate deploy",
+    "db:migrate:order": "cd services/order-service && npx prisma migrate deploy",
+    "db:migrate:inventory": "cd services/inventory-service && npx prisma migrate deploy",
+    "db:migrate:billing": "cd services/billing-service && npx prisma migrate deploy",
+    "db:migrate:notification": "cd services/notification-service && npx prisma migrate deploy",
+    
+    "db:generate": "npm run db:generate:user && npm run db:generate:customer && npm run db:generate:order && npm run db:generate:inventory && npm run db:generate:billing && npm run db:generate:notification",
+    "db:generate:user": "cd services/user-service && npx prisma generate",
+    "db:generate:customer": "cd services/customer-service && npx prisma generate",
+    "db:generate:order": "cd services/order-service && npx prisma generate",
+    "db:generate:inventory": "cd services/inventory-service && npx prisma generate",
+    "db:generate:billing": "cd services/billing-service && npx prisma generate",
+    "db:generate:notification": "cd services/notification-service && npx prisma generate",
+    
+    "db:seed": "npm run db:seed:user && npm run db:seed:customer && npm run db:seed:order && npm run db:seed:inventory",
+    "db:seed:user": "cd services/user-service && npm run seed",
+    "db:seed:customer": "cd services/customer-service && npm run seed",
+    "db:seed:order": "cd services/order-service && npm run seed",
+    "db:seed:inventory": "cd services/inventory-service && npm run seed",
+    
+    "db:reset": "docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.dev.yml up -d postgres && sleep 10 && npm run db:migrate && npm run db:seed",
+    "db:studio": "concurrently \"cd services/user-service && npx prisma studio --port 5001\" \"cd services/order-service && npx prisma studio --port 5002\" \"cd services/billing-service && npx prisma studio --port 5003\"",
+    
+    "---comment---": "=== TESTING ===",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "npm run test:unit:services && npm run test:unit:gateway",
+    "test:integration": "npm run test:integration:services && npm run test:integration:e2e",
+    "test:e2e": "cd tests/e2e && npm test",
+    
+    "test:unit:services": "concurrently \"cd services/user-service && npm test\" \"cd services/customer-service && npm test\" \"cd services/order-service && npm test\" \"cd services/inventory-service && npm test\" \"cd services/billing-service && npm test\" \"cd services/notification-service && npm test\"",
+    "test:unit:gateway": "cd gateway && npm test",
+    "test:integration:services": "concurrently \"cd services/user-service && npm run test:integration\" \"cd services/order-service && npm run test:integration\" \"cd services/billing-service && npm run test:integration\"",
+    "test:integration:e2e": "cd tests/integration && npm test",
+    
+    "test:coverage": "npm run test:coverage:services && npm run test:coverage:gateway",
+    "test:coverage:services": "concurrently \"cd services/user-service && npm run test:coverage\" \"cd services/order-service && npm run test:coverage\" \"cd services/billing-service && npm run test:coverage\"",
+    "test:coverage:gateway": "cd gateway && npm run test:coverage",
+    "test:coverage:view": "open coverage/lcov-report/index.html",
+    
+    "---comment---": "=== BUILD & DEPLOY ===",
+    "build": "npm run build:services && npm run build:gateway",
+    "build:services": "concurrently \"cd services/user-service && npm run build\" \"cd services/customer-service && npm run build\" \"cd services/order-service && npm run build\" \"cd services/inventory-service && npm run build\" \"cd services/billing-service && npm run build\" \"cd services/notification-service && npm run build\"",
+    "build:gateway": "cd gateway && npm run build",
+    
+    "build:docker": "npm run build:docker:services && npm run build:docker:gateway",
+    "build:docker:services": "concurrently \"docker build -t gcr.io/firemni-asistent/user-service ./services/user-service\" \"docker build -t gcr.io/firemni-asistent/customer-service ./services/customer-service\" \"docker build -t gcr.io/firemni-asistent/order-service ./services/order-service\" \"docker build -t gcr.io/firemni-asistent/inventory-service ./services/inventory-service\" \"docker build -t gcr.io/firemni-asistent/billing-service ./services/billing-service\" \"docker build -t gcr.io/firemni-asistent/notification-service ./services/notification-service\"",
+    "build:docker:gateway": "docker build -t gcr.io/firemni-asistent/api-gateway ./gateway",
+    
+    "deploy:staging": "scripts/deploy-staging.sh",
+    "deploy:production": "scripts/deploy-production.sh",
+    "rollback:production": "scripts/rollback-production.sh",
+    
+    "---comment---": "=== CODE QUALITY ===",
+    "lint": "npm run lint:services && npm run lint:gateway",
+    "lint:services": "concurrently \"cd services/user-service && npm run lint\" \"cd services/customer-service && npm run lint\" \"cd services/order-service && npm run lint\" \"cd services/inventory-service && npm run lint\" \"cd services/billing-service && npm run lint\" \"cd services/notification-service && npm run lint\"",
+    "lint:gateway": "cd gateway && npm run lint",
+    "lint:fix": "npm run lint:fix:services && npm run lint:fix:gateway",
+    "lint:fix:services": "concurrently \"cd services/user-service && npm run lint:fix\" \"cd services/customer-service && npm run lint:fix\" \"cd services/order-service && npm run lint:fix\" \"cd services/inventory-service && npm run lint:fix\" \"cd services/billing-service && npm run lint:fix\" \"cd services/notification-service && npm run lint:fix\"",
+    "lint:fix:gateway": "cd gateway && npm run lint:fix",
+    
+    "type-check": "npm run type-check:services && npm run type-check:gateway",
+    "type-check:services": "concurrently \"cd services/user-service && npm run type-check\" \"cd services/customer-service && npm run type-check\" \"cd services/order-service && npm run type-check\" \"cd services/inventory-service && npm run type-check\" \"cd services/billing-service && npm run type-check\" \"cd services/notification-service && npm run type-check\"",
+    "type-check:gateway": "cd gateway && npm run type-check",
+    
+    "format": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\" --ignore-path .gitignore",
+    
+    "quality:check": "npm run lint && npm run type-check && npm run format:check && npm run test:unit",
+    
+    "---comment---": "=== UTILITIES ===",
+    "clean": "npm run clean:services && npm run clean:gateway && npm run clean:deps",
+    "clean:services": "concurrently \"cd services/user-service && rm -rf dist node_modules\" \"cd services/customer-service && rm -rf dist node_modules\" \"cd services/order-service && rm -rf dist node_modules\" \"cd services/inventory-service && rm -rf dist node_modules\" \"cd services/billing-service && rm -rf dist node_modules\" \"cd services/notification-service && rm -rf dist node_modules\"",
+    "clean:gateway": "cd gateway && rm -rf dist node_modules",
+    "clean:deps": "rm -rf node_modules",
+    
+    "install:all": "npm install && npm run install:services && npm run install:gateway",
+    "install:services": "concurrently \"cd services/user-service && npm install\" \"cd services/customer-service && npm install\" \"cd services/order-service && npm install\" \"cd services/inventory-service && npm install\" \"cd services/billing-service && npm install\" \"cd services/notification-service && npm install\"",
+    "install:gateway": "cd gateway && npm install",
+    
+    "---comment---": "=== SECURITY ===",
+    "security:audit": "npm run security:audit:services && npm run security:audit:gateway",
+    "security:audit:services": "concurrently \"cd services/user-service && npm audit\" \"cd services/customer-service && npm audit\" \"cd services/order-service && npm audit\" \"cd services/inventory-service && npm audit\" \"cd services/billing-service && npm audit\" \"cd services/notification-service && npm audit\"",
+    "security:audit:gateway": "cd gateway && npm audit",
+    "security:deps": "scripts/security-scan.sh",
+    "security:images": "scripts/scan-docker-images.sh",
+    
+    "---comment---": "=== SECURITY SCANNING PIPELINE ===",
+    "security:scan:dev": "cd security && npm run test -- --environment=dev",
+    "security:scan:staging": "cd security && npm run test -- --environment=staging",
+    "security:scan:prod": "cd security && npm run test -- --environment=prod",
+    "security:sast": "cd security && npm run sast:semgrep",
+    "security:deps": "cd security && npm run deps:npm-audit && cd security && npm run deps:snyk",
+    "security:baseline:create": "cd security && npm run baseline:create",
+    "security:baseline:compare": "cd security && npm run baseline:compare",
+    "security:report": "cd security && npm run report:generate",
+    "security:consolidate": "cd security && npm run consolidate",
+    "security:analyze": "cd security && npm run analyze",
+    "security:validate": "cd security && npm run validate",
+    
+    "---comment---": "=== MONITORING ===",
+    "status:staging": "scripts/check-staging-health.sh",
+    "status:production": "scripts/check-production-health.sh",
+    "health:staging": "curl -f https://staging-api.firemni-asistent.cz/health || exit 1",
+    "health:production": "curl -f https://api.firemni-asistent.cz/health || exit 1",
+    
+    "setup:alerts": "scripts/setup-monitoring-alerts.sh",
+    "test:alerts": "scripts/test-alert-systems.sh",
+    
+    "---comment---": "=== PERFORMANCE ===",
+    "test:performance:dev": "cd tests/performance && npm run test:dev",
+    "test:performance:staging": "cd tests/performance && npm run test:staging",
+    "test:performance:prod": "cd tests/performance && npm run test:prod",
+    "test:smoke:dev": "cd tests/performance && npm run test:dev -- --grep=\"smoke\"",
+    "test:smoke:staging": "cd tests/performance && npm run test:staging -- --grep=\"smoke\"",
+    "test:smoke:prod": "cd tests/performance && npm run test:prod -- --grep=\"smoke\"",
+    "test:canary:health": "cd tests/performance && npm run test:staging -- --grep=\"health\"",
+    "perf:load": "cd tests/performance && npm run load-test",
+    "perf:stress": "cd tests/performance && npm run stress-test",
+    "perf:memory": "cd tests/performance && npm run memory-test",
+    "perf:baseline:create": "cd tests/performance && npm run baseline:create",
+    "perf:baseline:compare": "cd tests/performance && npm run baseline:compare",
+    
+    "---comment---": "=== MAINTENANCE ===",
+    "down": "docker-compose -f docker-compose.dev.yml down",
+    "restart": "docker-compose -f docker-compose.dev.yml restart",
+    "ps": "docker-compose -f docker-compose.dev.yml ps",
+    "exec": "docker-compose -f docker-compose.dev.yml exec"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "concurrently": "^8.2.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "nodemon": "^3.0.0",
+    "pino-pretty": "^10.0.0"
+  },
+  "dependencies": {
+    "pino": "^8.15.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/firemni-asistent.git"
+  },
+  "keywords": [
+    "business-management",
+    "microservices",
+    "graphql-federation",
+    "typescript",
+    "nodejs",
+    "cloud-run",
+    "enterprise"
+  ],
+  "author": "Firemní Asistent Team",
+  "license": "MIT"
+}

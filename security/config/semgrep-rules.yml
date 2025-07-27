@@ -1,0 +1,340 @@
+# =============================================================================
+# SEMGREP CUSTOM SECURITY RULES
+# =============================================================================
+# Project-specific security patterns for JavaScript/TypeScript applications
+
+rules:
+  # =============================================================================
+  # AUTHENTICATION & AUTHORIZATION
+  # =============================================================================
+  - id: hardcoded-api-keys
+    patterns:
+      - pattern-either:
+          - pattern: |
+              const $KEY = "$VALUE"
+          - pattern: |
+              let $KEY = "$VALUE"
+          - pattern: |
+              var $KEY = "$VALUE"
+          - pattern: |
+              export const $KEY = "$VALUE"
+    metavariable-regex:
+      $KEY: (?i)(api.?key|secret|token|password|pass)
+      $VALUE: "[a-zA-Z0-9]{20,}"
+    message: "Hardcoded API key or secret detected"
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A07:2021 – Identification and Authentication Failures"
+
+  - id: weak-jwt-secret
+    patterns:
+      - pattern-either:
+          - pattern: jwt.sign($PAYLOAD, "$SECRET", ...)
+          - pattern: jwt.verify($TOKEN, "$SECRET", ...)
+    metavariable-regex:
+      $SECRET: "^.{1,20}$"
+    message: "JWT secret appears to be too weak (less than 20 characters)"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-521: Weak Password Requirements"
+
+  - id: missing-jwt-expiration
+    patterns:
+      - pattern: jwt.sign($PAYLOAD, $SECRET)
+      - pattern-not: jwt.sign($PAYLOAD, $SECRET, {expiresIn: ...})
+      - pattern-not: jwt.sign($PAYLOAD, $SECRET, {..., expiresIn: ...})
+    message: "JWT tokens should have expiration time set"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-613: Insufficient Session Expiration"
+
+  # =============================================================================
+  # INJECTION VULNERABILITIES
+  # =============================================================================
+  - id: sql-injection-risk
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.query($QUERY + $INPUT, ...)
+          - pattern: |
+              $DB.query(`$QUERY${$INPUT}`, ...)
+          - pattern: |
+              $DB.execute($QUERY + $INPUT, ...)
+          - pattern: |
+              $DB.execute(`$QUERY${$INPUT}`, ...)
+    message: "Potential SQL injection vulnerability - use parameterized queries"
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A03:2021 – Injection"
+
+  - id: command-injection-risk
+    patterns:
+      - pattern-either:
+          - pattern: exec($CMD + $INPUT, ...)
+          - pattern: exec(`$CMD ${$INPUT}`, ...)
+          - pattern: spawn($CMD, [$ARG + $INPUT, ...], ...)
+          - pattern: execSync($CMD + $INPUT, ...)
+    message: "Potential command injection vulnerability"
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-78: OS Command Injection"
+      owasp: "A03:2021 – Injection"
+
+  - id: eval-usage
+    patterns:
+      - pattern-either:
+          - pattern: eval($INPUT)
+          - pattern: Function($INPUT)()
+          - pattern: new Function($INPUT)()
+    message: "Use of eval() or Function() constructor is dangerous"
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+
+  # =============================================================================
+  # CROSS-SITE SCRIPTING (XSS)
+  # =============================================================================
+  - id: dangerouslySetInnerHTML-usage
+    patterns:
+      - pattern: |
+          <$ELEMENT dangerouslySetInnerHTML={{__html: $VALUE}} />
+    message: "dangerouslySetInnerHTML can lead to XSS if not properly sanitized"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-79: Cross-site Scripting"
+      owasp: "A03:2021 – Injection"
+
+  - id: innerHTML-assignment
+    patterns:
+      - pattern-either:
+          - pattern: $ELEMENT.innerHTML = $VALUE
+          - pattern: $ELEMENT.outerHTML = $VALUE
+    message: "Direct innerHTML assignment can lead to XSS"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-79: Cross-site Scripting"
+
+  # =============================================================================
+  # INSECURE CONFIGURATIONS
+  # =============================================================================
+  - id: cors-wildcard-origin
+    patterns:
+      - pattern-either:
+          - pattern: |
+              app.use(cors({
+                origin: "*"
+              }))
+          - pattern: |
+              res.header("Access-Control-Allow-Origin", "*")
+    message: "CORS wildcard origin allows all domains - potential security risk"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-346: Origin Validation Error"
+
+  - id: insecure-cookie-settings
+    patterns:
+      - pattern-either:
+          - pattern: |
+              res.cookie($NAME, $VALUE, {
+                httpOnly: false,
+                ...
+              })
+          - pattern: |
+              res.cookie($NAME, $VALUE, {
+                secure: false,
+                ...
+              })
+          - pattern: |
+              res.cookie($NAME, $VALUE)
+    message: "Cookies should be httpOnly and secure in production"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute"
+
+  - id: weak-crypto-algorithm
+    patterns:
+      - pattern-either:
+          - pattern: crypto.createHash("md5")
+          - pattern: crypto.createHash("sha1")
+          - pattern: crypto.createCipher("des", ...)
+          - pattern: crypto.createCipher("rc4", ...)
+    message: "Weak cryptographic algorithm detected - use SHA-256 or stronger"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+
+  # =============================================================================
+  # FILE SYSTEM VULNERABILITIES
+  # =============================================================================
+  - id: path-traversal-risk
+    patterns:
+      - pattern-either:
+          - pattern: fs.readFile($PATH + $INPUT, ...)
+          - pattern: fs.readFile(`$PATH/${$INPUT}`, ...)
+          - pattern: fs.writeFile($PATH + $INPUT, ...)
+          - pattern: fs.writeFile(`$PATH/${$INPUT}`, ...)
+    message: "Potential path traversal vulnerability - validate user input"
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-22: Path Traversal"
+
+  - id: file-upload-without-validation
+    patterns:
+      - pattern: |
+          multer({
+            dest: $DEST
+          })
+      - pattern-not: |
+          multer({
+            dest: $DEST,
+            fileFilter: ...,
+            ...
+          })
+    message: "File upload without proper validation can be dangerous"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-434: Unrestricted Upload of File with Dangerous Type"
+
+  # =============================================================================
+  # SENSITIVE DATA EXPOSURE
+  # =============================================================================
+  - id: console-log-in-production
+    patterns:
+      - pattern-either:
+          - pattern: console.log(...)
+          - pattern: console.error(...)
+          - pattern: console.warn(...)
+          - pattern: console.info(...)
+    message: "Console logging in production can expose sensitive information"
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-532: Information Exposure Through Log Files"
+
+  - id: error-stack-exposure
+    patterns:
+      - pattern: |
+          res.status($STATUS).json({
+            error: $ERROR.stack,
+            ...
+          })
+    message: "Exposing error stack traces can reveal sensitive information"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-209: Information Exposure Through Error Messages"
+
+  # =============================================================================
+  # MONGODB INJECTION
+  # =============================================================================
+  - id: mongodb-injection-risk
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $MODEL.find(JSON.parse($INPUT))
+          - pattern: |
+              $MODEL.findOne(JSON.parse($INPUT))
+          - pattern: |
+              $MODEL.findOneAndUpdate(JSON.parse($INPUT), ...)
+    message: "Potential MongoDB injection - validate input before JSON.parse"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-943: Improper Neutralization of Special Elements in Data Query Logic"
+
+  # =============================================================================
+  # REGEX VULNERABILITIES
+  # =============================================================================
+  - id: regex-denial-of-service
+    patterns:
+      - pattern-either:
+          - pattern: new RegExp($PATTERN + "*", ...)
+          - pattern: new RegExp($PATTERN + "+", ...)
+          - pattern: /$PATTERN+/
+          - pattern: /$PATTERN*/
+    metavariable-regex:
+      $PATTERN: ".*\\(.*\\+.*\\|.*\\*.*\\).*"
+    message: "Potential ReDoS vulnerability - complex regex with quantifiers"
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-1333: Inefficient Regular Expression Complexity"
+
+  # =============================================================================
+  # PROTOTYPE POLLUTION
+  # =============================================================================
+  - id: prototype-pollution-risk
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $OBJ[$KEY] = $VALUE
+          - pattern: |
+              $OBJ.constructor.prototype[$KEY] = $VALUE
+    metavariable-regex:
+      $KEY: ".*(__proto__|constructor|prototype).*"
+    message: "Potential prototype pollution vulnerability"
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-1321: Improperly Controlled Modification of Object Prototype Attributes"
+
+  # =============================================================================
+  # NEXT.JS SPECIFIC RULES
+  # =============================================================================
+  - id: nextjs-getServerSideProps-sensitive-data
+    patterns:
+      - pattern: |
+          export async function getServerSideProps($CONTEXT) {
+            ...
+            return {
+              props: {
+                ...,
+                $PROP: process.env.$ENV_VAR,
+                ...
+              }
+            }
+          }
+    metavariable-regex:
+      $ENV_VAR: ".*(?i)(secret|key|token|password).*"
+    message: "Sensitive environment variable exposed to client in getServerSideProps"
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-200: Information Exposure"
+
+  - id: nextjs-api-route-missing-method-check
+    patterns:
+      - pattern: |
+          export default function handler($REQ, $RES) {
+            ...
+          }
+      - pattern-not: |
+          export default function handler($REQ, $RES) {
+            if ($REQ.method !== ...) { ... }
+            ...
+          }
+      - pattern-not: |
+          export default function handler($REQ, $RES) {
+            switch ($REQ.method) { ... }
+            ...
+          }
+    message: "API route should validate HTTP method"
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-20: Improper Input Validation"

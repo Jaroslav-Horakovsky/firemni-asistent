@@ -1,0 +1,504 @@
+{
+  "name": "Firemní Asistent OWASP ZAP Configuration",
+  "description": "DAST configuration for comprehensive web application security scanning",
+  "version": "1.0.0",
+  "global": {
+    "timeout": {
+      "spider": 600,
+      "activeScan": 1800,
+      "passiveScan": 300,
+      "ajax": 600
+    },
+    "threads": {
+      "spider": 5,
+      "activeScan": 10
+    },
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 ZAP/2.14.0",
+    "proxy": {
+      "port": 8080,
+      "host": "localhost"
+    }
+  },
+  "spider": {
+    "maxDepth": 5,
+    "maxChildren": 50,
+    "maxDuration": 10,
+    "maxParseSizeBytes": 2097152,
+    "parseComments": true,
+    "parseRobotsTxt": true,
+    "parseSitemapXml": true,
+    "parseGit": false,
+    "parseSVNEntries": false,
+    "postForm": true,
+    "processForm": true,
+    "requestWaitTime": 200,
+    "sendRefererHeader": true,
+    "skipURLString": "",
+    "acceptCookies": true,
+    "handleODataParametersVisited": true,
+    "domainsAlwaysInScope": [],
+    "domainsAlwaysOutOfScope": [
+      "google.com",
+      "googleapis.com",
+      "facebook.com",
+      "twitter.com",
+      "linkedin.com",
+      "youtube.com"
+    ]
+  },
+  "ajaxSpider": {
+    "enabled": true,
+    "maxDuration": 5,
+    "maxCrawlDepth": 10,
+    "numberOfBrowsers": 1,
+    "clickElementsOnce": true,
+    "clickDefaultElems": true,
+    "randomInputs": true
+  },
+  "activeScan": {
+    "policy": "Default Policy",
+    "maxRuleDurationInMins": 10,
+    "maxScanDurationInMins": 30,
+    "maxAlertsPerRule": 10,
+    "delayInMs": 0,
+    "handleAntiCSRFTokens": true,
+    "inScopeOnly": false,
+    "scanHeadersAllRequests": true,
+    "scanNullJsonValues": true,
+    "hostPerScan": 2,
+    "threadPerHost": 4,
+    "maxResultsToList": 1000,
+    "scanners": {
+      "enabled": [
+        "40009",
+        "40012",
+        "40014",
+        "40016",
+        "40017",
+        "40018",
+        "40019",
+        "40020",
+        "40021",
+        "40022",
+        "40023",
+        "40024",
+        "40025",
+        "40026",
+        "40027",
+        "40028",
+        "40029",
+        "40030",
+        "40031",
+        "40032",
+        "40033",
+        "40034",
+        "40035",
+        "40036",
+        "40037",
+        "40038",
+        "40039",
+        "40040",
+        "40041",
+        "40042",
+        "40043",
+        "40044",
+        "40045",
+        "90001",
+        "90019",
+        "90020",
+        "90021",
+        "90023",
+        "90024",
+        "90025",
+        "90026",
+        "90027",
+        "90028",
+        "90029",
+        "90030"
+      ],
+      "disabled": []
+    }
+  },
+  "passiveScan": {
+    "enabled": true,
+    "maxAlertsPerRule": 10,
+    "scanOnlyInScope": false,
+    "scanners": {
+      "enabled": [
+        "10010",
+        "10011",
+        "10015",
+        "10017",
+        "10019",
+        "10020",
+        "10021",
+        "10023",
+        "10024",
+        "10025",
+        "10026",
+        "10027",
+        "10028",
+        "10029",
+        "10030",
+        "10031",
+        "10032",
+        "10033",
+        "10034",
+        "10035",
+        "10036",
+        "10037",
+        "10038",
+        "10039",
+        "10040",
+        "10041",
+        "10042",
+        "10043",
+        "10044",
+        "10045",
+        "10046",
+        "10047",
+        "10048",
+        "10049",
+        "10050",
+        "10051",
+        "10052",
+        "10053",
+        "10054",
+        "10055",
+        "10056",
+        "10057",
+        "10058",
+        "10059",
+        "10060",
+        "10061",
+        "10062",
+        "10063",
+        "10094",
+        "10095",
+        "10096",
+        "10097",
+        "10098",
+        "10099",
+        "10100",
+        "10101",
+        "10102",
+        "10103",
+        "10104",
+        "10105",
+        "10106",
+        "10107",
+        "10108",
+        "10109",
+        "10110",
+        "10111",
+        "10112",
+        "10113",
+        "10114",
+        "10115",
+        "10116",
+        "10117",
+        "10118",
+        "10119",
+        "10120",
+        "10202"
+      ],
+      "disabled": []
+    }
+  },
+  "authentication": {
+    "method": "form",
+    "loginUrl": "/auth/login",
+    "logoutUrl": "/auth/logout",
+    "loginRequestData": "",
+    "excludeFromScan": [
+      "/auth/logout",
+      "/auth/register"
+    ],
+    "indicators": {
+      "loggedIn": [
+        "Dashboard",
+        "Profile",
+        "Logout"
+      ],
+      "loggedOut": [
+        "Login",
+        "Sign in",
+        "Authentication required"
+      ]
+    }
+  },
+  "session": {
+    "sessionTokens": [
+      "JSESSIONID",
+      "session",
+      "sessionid",
+      "PHPSESSID",
+      "ASP.NET_SessionId",
+      "connect.sid"
+    ],
+    "enableTokensInUrl": false
+  },
+  "context": {
+    "name": "Firemní Asistent Context",
+    "includeInContext": [
+      "https://dev.firemni-asistent.cz.*",
+      "https://staging.firemni-asistent.cz.*",
+      "https://firemni-asistent.cz.*"
+    ],
+    "excludeFromContext": [
+      ".*\\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$",
+      ".*/api/health$",
+      ".*/api/metrics$",
+      ".*/static/.*",
+      ".*/assets/.*",
+      ".*/node_modules/.*"
+    ]
+  },
+  "technology": {
+    "include": [
+      "JavaScript",
+      "Node.js",
+      "React",
+      "Next.js",
+      "Express"
+    ]
+  },
+  "policies": {
+    "Default Policy": {
+      "threshold": "MEDIUM",
+      "strength": "MEDIUM",
+      "scanners": {
+        "Cross Site Scripting (Reflected)": {
+          "id": "40012",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "Cross Site Scripting (Persistent)": {
+          "id": "40014",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "Cross Site Scripting (Persistent) - Prime": {
+          "id": "40016",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "SQL Injection": {
+          "id": "40018",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "SQL Injection - PostgreSQL": {
+          "id": "40019",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "SQL Injection - MySQL": {
+          "id": "40020",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "SQL Injection - Oracle": {
+          "id": "40021",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "SQL Injection - SQLite": {
+          "id": "40024",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "NoSQL Injection - MongoDB": {
+          "id": "40033",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "LDAP Injection": {
+          "id": "40015",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "Command Injection": {
+          "id": "90020",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "Remote File Inclusion": {
+          "id": "7",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "Directory Browsing": {
+          "id": "0",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "Path Traversal": {
+          "id": "6",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "Remote Code Execution - CVE-2012-1823": {
+          "id": "20018",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "External Redirect": {
+          "id": "20019",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "CRLF Injection": {
+          "id": "40003",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "Parameter Pollution": {
+          "id": "20014",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "Server Side Include": {
+          "id": "40009",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "Cross-Domain Misconfiguration": {
+          "id": "10098",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "ELMAH Information Leak": {
+          "id": "40028",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "Backup File Disclosure": {
+          "id": "10095",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "MEDIUM"
+        },
+        "Heartbleed OpenSSL Vulnerability": {
+          "id": "90019",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        },
+        "ShellShock": {
+          "id": "10048",
+          "enabled": true,
+          "threshold": "MEDIUM",
+          "strength": "HIGH"
+        }
+      }
+    }
+  },
+  "reporting": {
+    "formats": [
+      "HTML",
+      "XML",
+      "JSON",
+      "MD"
+    ],
+    "includePassiveAlerts": true,
+    "includeActiveAlerts": true,
+    "reportTitle": "Firemní Asistent Security Scan Report",
+    "reportDescription": "OWASP ZAP DAST security scan results",
+    "confidenceThreshold": "LOW",
+    "riskThreshold": "LOW"
+  },
+  "customRules": [
+    {
+      "name": "JWT Token in URL",
+      "description": "Detects JWT tokens exposed in URLs",
+      "pattern": ".*[?&]token=eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*",
+      "risk": "HIGH",
+      "confidence": "HIGH",
+      "solution": "JWT tokens should be transmitted in headers, not URLs"
+    },
+    {
+      "name": "API Key in URL",
+      "description": "Detects API keys exposed in URLs",
+      "pattern": ".*[?&](api[_-]?key|apikey|key)=[A-Za-z0-9]{20,}",
+      "risk": "HIGH",
+      "confidence": "MEDIUM",
+      "solution": "API keys should be transmitted in headers, not URLs"
+    },
+    {
+      "name": "Sensitive Headers Exposure",
+      "description": "Detects sensitive information in response headers",
+      "headerPattern": ".*(X-Powered-By|Server|X-AspNet-Version|X-AspNetMvc-Version).*",
+      "risk": "LOW",
+      "confidence": "HIGH",
+      "solution": "Remove or obfuscate sensitive server information from headers"
+    }
+  ],
+  "excludeUrls": [
+    "/health",
+    "/metrics", 
+    "/favicon.ico",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/_next/static/",
+    "/static/",
+    "/assets/",
+    "/__next",
+    "/_next/"
+  ],
+  "scanMode": {
+    "passive": true,
+    "active": true,
+    "spider": true,
+    "ajaxSpider": true
+  },
+  "alertFilters": [
+    {
+      "ruleId": "10021",
+      "newRisk": "INFO",
+      "parameter": "",
+      "url": ".*/_next/.*"
+    },
+    {
+      "ruleId": "10049",
+      "newRisk": "INFO", 
+      "parameter": "",
+      "url": ".*/static/.*"
+    }
+  ],
+  "breakpoints": {
+    "request": [],
+    "response": []
+  },
+  "replacements": [
+    {
+      "description": "Replace localhost with actual domain",
+      "matchString": "localhost",
+      "replaceString": "staging.firemni-asistent.cz",
+      "matchType": "string",
+      "tokenProcessing": false,
+      "initiators": ["PROXY", "MANUAL_REQUEST"]
+    }
+  ]
+}

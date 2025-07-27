@@ -1,0 +1,49 @@
+{
+  "name": "@firemni-asistent/performance-tests",
+  "version": "1.0.0",
+  "description": "Automated performance testing suite using Playwright + Browser-tools",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:staging",
+    "test:dev": "cross-env TEST_ENV=dev NODE_ENV=test playwright test --config=playwright.config.dev.js",
+    "test:staging": "cross-env TEST_ENV=staging NODE_ENV=test playwright test --config=playwright.config.staging.js",
+    "test:prod": "cross-env TEST_ENV=prod NODE_ENV=test playwright test --config=playwright.config.prod.js",
+    
+    "load-test": "npm run load-test:staging",
+    "load-test:dev": "cross-env TEST_ENV=dev k6 run --config k6.config.dev.js scenarios/load-testing.js",
+    "load-test:staging": "cross-env TEST_ENV=staging k6 run --config k6.config.staging.js scenarios/load-testing.js",
+    "load-test:prod": "cross-env TEST_ENV=prod k6 run --config k6.config.prod.js scenarios/load-testing.js",
+    
+    "stress-test": "npm run stress-test:staging",
+    "stress-test:staging": "cross-env TEST_ENV=staging k6 run --config k6.config.stress.js scenarios/stress-testing.js",
+    "stress-test:prod": "cross-env TEST_ENV=prod k6 run --config k6.config.stress.js scenarios/stress-testing.js",
+    
+    "memory-test": "cross-env TEST_ENV=staging playwright test --config=playwright.config.memory.js scenarios/memory-testing.spec.js",
+    
+    "baseline:create": "node scripts/create-baseline.js",
+    "baseline:compare": "node scripts/compare-baseline.js",
+    "report:generate": "node scripts/generate-report.js",
+    "report:upload": "node scripts/upload-results.js"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.40.0",
+    "k6": "^0.47.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "pino": "^8.16.0",
+    "fs-extra": "^11.1.0",
+    "glob": "^10.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/lodash": "^4.14.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

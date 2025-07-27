@@ -1,0 +1,169 @@
+# =============================================================================
+# CODEQL CONFIGURATION FOR SECURITY SCANNING
+# =============================================================================
+# Custom CodeQL configuration for comprehensive JavaScript/TypeScript security analysis
+
+name: "Security-focused CodeQL Configuration"
+
+# Disable default queries to use only security-focused ones
+disable-default-queries: false
+
+# Enable additional query packs
+queries:
+  # Security-focused queries
+  - name: security-extended
+    uses: security-extended
+  - name: security-and-quality
+    uses: security-and-quality
+  
+  # JavaScript/TypeScript specific security queries
+  - name: javascript-security
+    uses: javascript/ql/src/Security
+  - name: javascript-experimental
+    uses: javascript/ql/src/experimental/Security
+
+# Query filters - include only security-relevant queries
+query-filters:
+  - include:
+      kind:
+        - problem
+        - path-problem
+      tags:
+        - security
+        - external/owasp
+        - external/cwe
+  - exclude:
+      tags:
+        - maintainability
+        - reliability
+      # Exclude overly noisy queries that generate false positives
+      id:
+        - js/unused-local-variable
+        - js/empty-block
+
+# Path filters - focus on source code, exclude test files for cleaner results
+paths-ignore:
+  - "**/*.test.js"
+  - "**/*.test.ts"
+  - "**/*.spec.js"
+  - "**/*.spec.ts"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/spec/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/*.min.js"
+  - "**/coverage/**"
+
+# Paths to include - focus on application source code
+paths:
+  - "src/**"
+  - "lib/**"
+  - "app/**"
+  - "pages/**"
+  - "components/**"
+  - "utils/**"
+  - "services/**"
+  - "api/**"
+  - "server/**"
+
+# External data extensions for better analysis
+external-data:
+  # Include common JavaScript security sinks
+  - javascript-security-sinks
+  # Include authentication and authorization patterns
+  - javascript-auth-patterns
+  # Include SQL injection patterns
+  - javascript-sql-patterns
+
+# Compilation settings for better analysis
+languages:
+  - javascript
+
+# Build configuration
+build:
+  # Commands to run before analysis (if needed)
+  before-install: []
+  install: []
+  before-build: []
+  build: []
+  after-build: []
+
+# Advanced configuration
+advanced:
+  # Enable experimental features for better security detection
+  experimental-features:
+    - javascript-dependencies-from-environment
+    - javascript-externs-recognition
+  
+  # Memory and performance settings
+  memory:
+    heap: "4096M"
+  
+  # Timeout settings
+  timeout:
+    per-query: "10m"
+    total: "30m"
+
+# Custom query suites definition
+suites:
+  - name: "owasp-top-10"
+    description: "OWASP Top 10 security vulnerabilities"
+    queries:
+      - javascript/ql/src/Security/CWE-079  # Cross-site scripting
+      - javascript/ql/src/Security/CWE-089  # SQL injection
+      - javascript/ql/src/Security/CWE-200  # Information exposure
+      - javascript/ql/src/Security/CWE-287  # Authentication bypass
+      - javascript/ql/src/Security/CWE-352  # CSRF
+      - javascript/ql/src/Security/CWE-601  # Open redirect
+      - javascript/ql/src/Security/CWE-798  # Hard-coded credentials
+  
+  - name: "injection-attacks"
+    description: "Code injection and related vulnerabilities"
+    queries:
+      - javascript/ql/src/Security/CWE-078  # OS command injection
+      - javascript/ql/src/Security/CWE-089  # SQL injection
+      - javascript/ql/src/Security/CWE-094  # Code injection
+      - javascript/ql/src/Security/CWE-095  # Eval injection
+  
+  - name: "authentication-security"
+    description: "Authentication and session management"
+    queries:
+      - javascript/ql/src/Security/CWE-287  # Authentication bypass
+      - javascript/ql/src/Security/CWE-384  # Session fixation
+      - javascript/ql/src/Security/CWE-521  # Weak password requirements
+      - javascript/ql/src/Security/CWE-798  # Hard-coded passwords
+
+# Output configuration
+output:
+  format: "sarif-latest"
+  upload: true
+  
+# Severity mapping for better triaging
+severity-levels:
+  error:
+    - "js/code-injection"
+    - "js/sql-injection"
+    - "js/path-injection"
+    - "js/hardcoded-credentials"
+  warning:
+    - "js/xss"
+    - "js/open-redirect"
+    - "js/csrf"
+    - "js/prototype-pollution"
+  note:
+    - "js/insecure-randomness"
+    - "js/weak-cryptographic-algorithm"
+
+# Custom metadata for better reporting
+metadata:
+  scan-type: "security"
+  compliance:
+    - "OWASP Top 10"
+    - "CWE Top 25"
+  frameworks:
+    - "React"
+    - "Next.js"
+    - "Express.js"
+    - "Node.js"

@@ -1,0 +1,48 @@
+{
+  "name": "@firemni-asistent/chaos-engineering",
+  "version": "1.0.0",
+  "description": "Chaos Engineering experiments to validate resilience patterns and circuit breakers",
+  "private": true,
+  "scripts": {
+    "experiment": "node experiments/run-experiment.js",
+    "experiment:circuit-breaker": "node experiments/circuit-breaker-validation.js",
+    "experiment:dependency-failure": "node experiments/dependency-failure.js",
+    "experiment:load-spike": "node experiments/load-spike.js",
+    "experiment:network-partition": "node experiments/network-partition.js",
+    "experiment:resource-exhaustion": "node experiments/resource-exhaustion.js",
+    
+    "validate": "npm run validate:staging",
+    "validate:staging": "cross-env TARGET_ENV=staging node experiments/run-all-experiments.js",
+    "validate:dev": "cross-env TARGET_ENV=dev node experiments/run-all-experiments.js",
+    
+    "report": "node scripts/generate-chaos-report.js",
+    "analyze": "node scripts/analyze-experiment-results.js",
+    "dashboard": "node scripts/chaos-dashboard.js",
+    
+    "schedule:daily": "node scripts/schedule-experiments.js --frequency=daily",
+    "schedule:weekly": "node scripts/schedule-experiments.js --frequency=weekly"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "pino": "^8.16.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "fs-extra": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.3",
+    "promisify": "^0.0.3",
+    "@google-cloud/monitoring": "^4.0.0",
+    "@google-cloud/logging": "^11.0.0",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/lodash": "^4.14.0",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

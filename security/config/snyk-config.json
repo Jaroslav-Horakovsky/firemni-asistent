@@ -1,0 +1,285 @@
+{
+  "name": "Firemní Asistent Snyk Configuration",
+  "description": "Dependency vulnerability scanning configuration for comprehensive security analysis",
+  "version": "1.0.0",
+  "language-settings": {
+    "javascript": {
+      "packageManager": "npm",
+      "includeDevDeps": true,
+      "yarnWorkspaces": false,
+      "detection-depth": 4,
+      "exclude": [
+        "**/node_modules/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/*.test.js",
+        "**/*.spec.js"
+      ]
+    }
+  },
+  "patches": {
+    "auto-patch": false,
+    "patch-policy": "upgrade",
+    "exclude-patches": []
+  },
+  "ignore": {
+    "SNYK-JS-LODASH-567746": {
+      "reason": "No upgrade available, risk accepted for now",
+      "expires": "2024-12-31T23:59:59.999Z",
+      "created": "2024-01-15T10:00:00.000Z"
+    }
+  },
+  "fail-on": {
+    "vulnerabilities": true,
+    "licenses": false,
+    "severity": {
+      "low": false,
+      "medium": true,
+      "high": true,
+      "critical": true
+    }
+  },
+  "monitor": {
+    "enabled": true,
+    "project-name": "firemni-asistent",
+    "project-tags": [
+      "environment:production",
+      "team:security",
+      "criticality:high",
+      "compliance:gdpr",
+      "type:web-application"
+    ],
+    "organization": "firemni-asistent-org"
+  },
+  "test": {
+    "severity-threshold": "medium",
+    "fail-on": "upgradable",
+    "prune-repeated-subdependencies": true,
+    "print-deps": false,
+    "remote-repo-url": "https://github.com/yourusername/firemni-asistent.git",
+    "include-base-image-vulns": true,
+    "exclude-base-image-vulns": false
+  },
+  "code": {
+    "enabled": true,
+    "quality-gate": true,
+    "severity-threshold": "medium",
+    "ignore-policy": "security/config/snyk-code-ignore.json",
+    "include": [
+      "**/*.js",
+      "**/*.jsx", 
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.vue",
+      "**/*.json"
+    ],
+    "exclude": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/*.min.js",
+      "**/coverage/**",
+      "**/.next/**",
+      "**/out/**"
+    ]
+  },
+  "license-policy": {
+    "allowed": [
+      "MIT",
+      "Apache-2.0",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "ISC",
+      "CC0-1.0",
+      "WTFPL",
+      "Unlicense"
+    ],
+    "forbidden": [
+      "GPL-2.0",
+      "GPL-3.0",
+      "AGPL-1.0",
+      "AGPL-3.0",
+      "LGPL-2.0",
+      "LGPL-2.1",
+      "LGPL-3.0",
+      "CDDL-1.0",
+      "CDDL-1.1",
+      "EPL-1.0",
+      "EPL-2.0",
+      "EUPL-1.1",
+      "EUPL-1.2"
+    ],
+    "review-required": [
+      "CC-BY-3.0",
+      "CC-BY-4.0",
+      "CC-BY-SA-3.0",
+      "CC-BY-SA-4.0"
+    ]
+  },
+  "report": {
+    "format": "json",
+    "output-file": "results/dependencies/snyk-report.json",
+    "include": {
+      "vulnerabilities": true,
+      "licenses": true,
+      "summary": true,
+      "details": true,
+      "remediation": true
+    }
+  },
+  "vulnerability-database": {
+    "source": "snyk",
+    "update-frequency": "daily",
+    "include-malicious-packages": true,
+    "include-license-issues": true
+  },
+  "remediation": {
+    "auto-fix": false,
+    "upgrade-strategy": "minor",
+    "pin-strategy": "exact",
+    "create-pr": false,
+    "include-indirect": true,
+    "max-depth": 10
+  },
+  "integrations": {
+    "github": {
+      "enabled": true,
+      "auto-dependency-upgrade-pr": false,
+      "auto-fix-pr": false,
+      "fail-on-any-vulns": false,
+      "pr-checks": true
+    },
+    "jira": {
+      "enabled": false
+    },
+    "slack": {
+      "enabled": false
+    }
+  },
+  "custom-rules": [
+    {
+      "id": "CUSTOM-001",
+      "name": "Outdated React Version",
+      "description": "Detect usage of outdated React versions",
+      "severity": "medium",
+      "package": "react",
+      "version": "<18.0.0",
+      "message": "React version is below recommended minimum (18.0.0)"
+    },
+    {
+      "id": "CUSTOM-002", 
+      "name": "Insecure Crypto Package",
+      "description": "Usage of deprecated crypto packages",
+      "severity": "high",
+      "packages": ["crypto", "node-rsa"],
+      "message": "Use built-in Node.js crypto module instead"
+    },
+    {
+      "id": "CUSTOM-003",
+      "name": "Development Dependencies in Production",
+      "description": "Development packages should not be in production dependencies",
+      "severity": "low",
+      "dev-packages-in-prod": [
+        "webpack",
+        "babel",
+        "eslint",
+        "jest",
+        "mocha",
+        "chai",
+        "sinon"
+      ]
+    }
+  ],
+  "severity-mapping": {
+    "critical": {
+      "score": ">= 9.0",
+      "action": "block-deployment",
+      "notify": ["security-team", "dev-leads"]
+    },
+    "high": {
+      "score": ">= 7.0",
+      "action": "require-approval",
+      "notify": ["security-team"]
+    },
+    "medium": {
+      "score": ">= 4.0", 
+      "action": "create-issue",
+      "notify": ["dev-team"]
+    },
+    "low": {
+      "score": "< 4.0",
+      "action": "log-only",
+      "notify": []
+    }
+  },
+  "compliance": {
+    "frameworks": [
+      "OWASP",
+      "NIST",
+      "SOC2",
+      "GDPR"
+    ],
+    "requirements": {
+      "vulnerability-scanning": "weekly",
+      "license-compliance": "monthly",
+      "dependency-updates": "bi-weekly",
+      "security-review": "quarterly"
+    }
+  },
+  "notifications": {
+    "new-vulnerabilities": {
+      "enabled": true,
+      "threshold": "medium",
+      "frequency": "immediate"
+    },
+    "weekly-summary": {
+      "enabled": true,
+      "day": "monday",
+      "time": "09:00"
+    },
+    "monthly-report": {
+      "enabled": true,
+      "day": 1,
+      "time": "09:00"
+    }
+  },
+  "baseline": {
+    "create-on-first-scan": true,
+    "compare-against-baseline": true,
+    "fail-on-new-vulns": true,
+    "baseline-file": "baselines/snyk-baseline.json"
+  },
+  "exclude-paths": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    "coverage/",
+    ".git/",
+    ".next/",
+    "out/",
+    "public/",
+    "docs/",
+    "*.min.js",
+    "*.bundle.js"
+  ],
+  "include-paths": [
+    "src/",
+    "lib/",
+    "app/",
+    "pages/",
+    "components/",
+    "utils/",
+    "services/",
+    "api/",
+    "server/"
+  ],
+  "advanced": {
+    "timeout": "5m",
+    "retries": 3,
+    "concurrent-scans": 2,
+    "cache-results": true,
+    "cache-duration": "24h",
+    "debug": false,
+    "verbose": false
+  }
+}

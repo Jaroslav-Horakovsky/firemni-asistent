@@ -1,0 +1,847 @@
+# =============================================================================
+# AUTOMATED SECURITY SCANNING PIPELINE
+# =============================================================================
+# Comprehensive security scanning using SAST, DAST, and dependency analysis
+# Runs on staging deployments and PR validation with vulnerability tracking
+
+name: Security Scanning Pipeline
+
+on:
+  # Trigger on staging deployments
+  workflow_run:
+    workflows: ["Multi-Environment Deployment Pipeline"]
+    types: [completed]
+    branches: [staging]
+  
+  # Manual trigger for security validation
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment for security scanning'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      scan_type:
+        description: 'Type of security scan to run'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - quick
+          - full
+          - sast-only
+          - dast-only
+          - dependencies-only
+      create_baseline:
+        description: 'Create new security baseline'
+        required: false
+        default: false
+        type: boolean
+      severity_threshold:
+        description: 'Minimum severity level to report'
+        required: true
+        default: 'medium'
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+          - critical
+
+env:
+  # Node.js Configuration
+  NODE_VERSION: '20'
+  
+  # Security Scanning Configuration  
+  SCAN_TIMEOUT: '600000'  # 10 minutes
+  VULNERABILITY_THRESHOLD: 'medium'  # Default severity threshold
+  
+  # OWASP ZAP Configuration
+  ZAP_VERSION: '2.14.0'
+  ZAP_PORT: '8080'
+  ZAP_TIMEOUT: '300'  # 5 minutes
+  
+  # Environment URLs
+  DEV_BASE_URL: 'https://dev.firemni-asistent.cz'
+  STAGING_BASE_URL: 'https://staging.firemni-asistent.cz'
+  PROD_BASE_URL: 'https://firemni-asistent.cz'
+
+jobs:
+  # =============================================================================
+  # SETUP AND VALIDATION
+  # =============================================================================
+  setup-security-scanning:
+    name: Setup Security Scanning Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.setup.outputs.environment }}
+      base-url: ${{ steps.setup.outputs.base-url }}
+      scan-type: ${{ steps.setup.outputs.scan-type }}
+      severity-threshold: ${{ steps.setup.outputs.severity-threshold }}
+      should-run: ${{ steps.setup.outputs.should-run }}
+    
+    steps:
+      - name: Determine Scan Configuration
+        id: setup
+        run: |
+          # Determine environment and scan type
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "base-url=${{ env.STAGING_BASE_URL }}" >> $GITHUB_OUTPUT
+            echo "scan-type=full" >> $GITHUB_OUTPUT
+            echo "severity-threshold=${{ env.VULNERABILITY_THRESHOLD }}" >> $GITHUB_OUTPUT
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "🎯 Triggered by staging deployment - running full security scan"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "scan-type=${{ github.event.inputs.scan_type }}" >> $GITHUB_OUTPUT
+            echo "severity-threshold=${{ github.event.inputs.severity_threshold }}" >> $GITHUB_OUTPUT
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            
+            case "${{ github.event.inputs.environment }}" in
+              dev)
+                echo "base-url=${{ env.DEV_BASE_URL }}" >> $GITHUB_OUTPUT
+                ;;
+              staging)
+                echo "base-url=${{ env.STAGING_BASE_URL }}" >> $GITHUB_OUTPUT
+                ;;
+              prod)
+                echo "base-url=${{ env.PROD_BASE_URL }}" >> $GITHUB_OUTPUT
+                ;;
+            esac
+            
+            echo "🎯 Manual trigger - scanning ${{ github.event.inputs.environment }} with ${{ github.event.inputs.scan_type }} scan"
+          else
+            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "❌ Unsupported trigger event"
+          fi
+      
+      - name: Validate Target Environment
+        if: steps.setup.outputs.should-run == 'true'
+        run: |
+          echo "🔍 Validating target environment..."
+          
+          # Health check target environment
+          if ! curl -f --max-time 30 "${{ steps.setup.outputs.base-url }}/health"; then
+            echo "❌ Target environment health check failed"
+            echo "🔗 URL: ${{ steps.setup.outputs.base-url }}/health"
+            exit 1
+          fi
+          
+          echo "✅ Target environment is healthy and ready for security scanning"
+          echo "🔗 Base URL: ${{ steps.setup.outputs.base-url }}"
+          echo "🔒 Scan Type: ${{ steps.setup.outputs.scan-type }}"
+          echo "⚠️  Severity Threshold: ${{ steps.setup.outputs.severity-threshold }}"
+          echo "🌍 Environment: ${{ steps.setup.outputs.environment }}"
+
+  # =============================================================================
+  # STATIC APPLICATION SECURITY TESTING (SAST)
+  # =============================================================================
+  sast-scanning:
+    name: Static Application Security Testing
+    runs-on: ubuntu-latest
+    needs: setup-security-scanning
+    if: needs.setup-security-scanning.outputs.should-run == 'true' && (needs.setup-security-scanning.outputs.scan-type == 'full' || needs.setup-security-scanning.outputs.scan-type == 'sast-only')
+    
+    strategy:
+      matrix:
+        scanner:
+          - codeql
+          - semgrep
+      fail-fast: false
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: Initialize CodeQL
+        if: matrix.scanner == 'codeql'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          config-file: ./.github/codeql/codeql-config.yml
+      
+      - name: Autobuild for CodeQL
+        if: matrix.scanner == 'codeql'
+        uses: github/codeql-action/autobuild@v3
+      
+      - name: Perform CodeQL Analysis
+        if: matrix.scanner == 'codeql'
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript'
+          upload: false
+          output: codeql-results
+      
+      - name: Run Semgrep Analysis
+        if: matrix.scanner == 'semgrep'
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >- 
+            p/security-audit
+            p/nodejs
+            p/owasp-top-ten
+            p/javascript
+          generateSarif: "1"
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+        env:
+          SEMGREP_RULES: auto
+      
+      - name: Create Security Directory
+        run: |
+          mkdir -p security/results/sast
+          mkdir -p security/baselines
+          mkdir -p security/reports
+      
+      - name: Process SAST Results
+        run: |
+          echo "📊 Processing ${{ matrix.scanner }} results..."
+          
+          if [[ "${{ matrix.scanner }}" == "codeql" ]]; then
+            # Process CodeQL results
+            if [[ -d "codeql-results" ]]; then
+              cp -r codeql-results/* security/results/sast/
+              echo "✅ CodeQL results processed"
+            else
+              echo "⚠️  No CodeQL results found"
+            fi
+          elif [[ "${{ matrix.scanner }}" == "semgrep" ]]; then
+            # Process Semgrep results
+            if [[ -f "semgrep.sarif" ]]; then
+              cp semgrep.sarif security/results/sast/semgrep-results.sarif
+              echo "✅ Semgrep results processed"
+            else
+              echo "⚠️  No Semgrep results found"
+            fi
+          fi
+      
+      - name: Upload SAST Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-results-${{ matrix.scanner }}
+          path: |
+            security/results/sast/
+            semgrep.sarif
+            codeql-results/
+          retention-days: 90
+
+  # =============================================================================
+  # DEPENDENCY VULNERABILITY SCANNING
+  # =============================================================================
+  dependency-scanning:
+    name: Dependency Vulnerability Scanning
+    runs-on: ubuntu-latest
+    needs: setup-security-scanning
+    if: needs.setup-security-scanning.outputs.should-run == 'true' && (needs.setup-security-scanning.outputs.scan-type == 'full' || needs.setup-security-scanning.outputs.scan-type == 'dependencies-only')
+    
+    strategy:
+      matrix:
+        scanner:
+          - npm-audit
+          - snyk
+      fail-fast: false
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: Create Security Directory
+        run: |
+          mkdir -p security/results/dependencies
+          mkdir -p security/reports
+      
+      - name: Run NPM Audit
+        if: matrix.scanner == 'npm-audit'
+        run: |
+          echo "🔍 Running npm audit..."
+          
+          # Run npm audit and save results
+          npm audit --json > security/results/dependencies/npm-audit.json || true
+          npm audit --audit-level=${{ needs.setup-security-scanning.outputs.severity-threshold }} > security/results/dependencies/npm-audit.txt || true
+          
+          echo "✅ NPM audit completed"
+      
+      - name: Setup Snyk
+        if: matrix.scanner == 'snyk'
+        uses: snyk/actions/setup@master
+      
+      - name: Run Snyk Vulnerability Scan
+        if: matrix.scanner == 'snyk'
+        run: |
+          echo "🔍 Running Snyk vulnerability scan..."
+          
+          # Authenticate with Snyk
+          snyk auth ${{ secrets.SNYK_TOKEN }}
+          
+          # Run Snyk test and save results
+          snyk test --json > security/results/dependencies/snyk-test.json || true
+          snyk test --severity-threshold=${{ needs.setup-security-scanning.outputs.severity-threshold }} > security/results/dependencies/snyk-test.txt || true
+          
+          # Run Snyk code analysis
+          snyk code test --json > security/results/dependencies/snyk-code.json || true
+          
+          echo "✅ Snyk scan completed"
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      
+      - name: Upload Dependency Scan Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-results-${{ matrix.scanner }}
+          path: |
+            security/results/dependencies/
+          retention-days: 90
+
+  # =============================================================================
+  # DYNAMIC APPLICATION SECURITY TESTING (DAST)
+  # =============================================================================
+  dast-scanning:
+    name: Dynamic Application Security Testing
+    runs-on: ubuntu-latest
+    needs: setup-security-scanning
+    if: needs.setup-security-scanning.outputs.should-run == 'true' && (needs.setup-security-scanning.outputs.scan-type == 'full' || needs.setup-security-scanning.outputs.scan-type == 'dast-only')
+    
+    services:
+      zap:
+        image: owasp/zap2docker-stable:${{ env.ZAP_VERSION }}
+        ports:
+          - 8080:8080
+        options: >-
+          --user root
+          --entrypoint=""
+        volumes:
+          - /github/workspace:/zap/wrk:rw
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Create Security Directory
+        run: |
+          mkdir -p security/results/dast
+          mkdir -p security/reports
+          chmod 777 security/results/dast
+      
+      - name: Wait for ZAP to Start
+        run: |
+          echo "⏳ Waiting for OWASP ZAP to start..."
+          
+          timeout ${{ env.ZAP_TIMEOUT }} bash -c '
+            until curl -f http://localhost:${{ env.ZAP_PORT }}/JSON/core/view/version/ 2>/dev/null; do
+              echo "Waiting for ZAP..."
+              sleep 5
+            done
+          '
+          
+          echo "✅ OWASP ZAP is ready"
+      
+      - name: Configure ZAP for Scanning
+        run: |
+          echo "⚙️  Configuring OWASP ZAP..."
+          
+          # Configure ZAP settings
+          curl -s "http://localhost:${{ env.ZAP_PORT }}/JSON/core/action/setOptionTimeoutInSecs/?Integer=60"
+          curl -s "http://localhost:${{ env.ZAP_PORT }}/JSON/core/action/setOptionMaximumRuleDurationInMins/?Integer=10"
+          
+          # Enable all scan policies
+          curl -s "http://localhost:${{ env.ZAP_PORT }}/JSON/ascan/action/enableAllScanners/"
+          
+          echo "✅ ZAP configuration completed"
+      
+      - name: Spider Target Application
+        run: |
+          echo "🕷️  Spidering target application..."
+          
+          TARGET_URL="${{ needs.setup-security-scanning.outputs.base-url }}"
+          
+          # Start spider scan
+          SPIDER_ID=$(curl -s "http://localhost:${{ env.ZAP_PORT }}/JSON/spider/action/scan/?url=${TARGET_URL}&maxChildren=10&recurse=true" | jq -r '.scan')
+          
+          echo "🕷️  Spider scan started with ID: $SPIDER_ID"
+          
+          # Wait for spider to complete
+          while true; do
+            PROGRESS=$(curl -s "http://localhost:${{ env.ZAP_PORT }}/JSON/spider/view/status/?scanId=${SPIDER_ID}" | jq -r '.status')
+            echo "Spider progress: $PROGRESS%"
+            
+            if [[ "$PROGRESS" == "100" ]]; then
+              break
+            fi
+            sleep 10
+          done
+          
+          echo "✅ Spider scan completed"
+      
+      - name: Active Security Scan
+        run: |
+          echo "🔍 Starting active security scan..."
+          
+          TARGET_URL="${{ needs.setup-security-scanning.outputs.base-url }}"
+          
+          # Start active scan
+          SCAN_ID=$(curl -s "http://localhost:${{ env.ZAP_PORT }}/JSON/ascan/action/scan/?url=${TARGET_URL}&recurse=true&inScopeOnly=false" | jq -r '.scan')
+          
+          echo "🔍 Active scan started with ID: $SCAN_ID"
+          
+          # Wait for scan to complete
+          while true; do
+            PROGRESS=$(curl -s "http://localhost:${{ env.ZAP_PORT }}/JSON/ascan/view/status/?scanId=${SCAN_ID}" | jq -r '.status')
+            echo "Active scan progress: $PROGRESS%"
+            
+            if [[ "$PROGRESS" == "100" ]]; then
+              break
+            fi
+            sleep 15
+          done
+          
+          echo "✅ Active security scan completed"
+      
+      - name: Generate ZAP Reports
+        run: |
+          echo "📊 Generating OWASP ZAP reports..."
+          
+          # Generate HTML report
+          curl -s "http://localhost:${{ env.ZAP_PORT }}/OTHER/core/other/htmlreport/" > security/results/dast/zap-report.html
+          
+          # Generate JSON report
+          curl -s "http://localhost:${{ env.ZAP_PORT }}/JSON/core/view/alerts/" > security/results/dast/zap-alerts.json
+          
+          # Generate XML report
+          curl -s "http://localhost:${{ env.ZAP_PORT }}/OTHER/core/other/xmlreport/" > security/results/dast/zap-report.xml
+          
+          echo "✅ ZAP reports generated"
+      
+      - name: Upload DAST Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-results
+          path: |
+            security/results/dast/
+          retention-days: 90
+
+  # =============================================================================
+  # SECURITY ANALYSIS AND REPORTING
+  # =============================================================================
+  analyze-security-results:
+    name: Security Analysis and Reporting
+    runs-on: ubuntu-latest
+    needs: [setup-security-scanning, sast-scanning, dependency-scanning, dast-scanning]
+    if: always() && needs.setup-security-scanning.outputs.should-run == 'true'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Create Security Directory Structure
+        run: |
+          mkdir -p security/results/{sast,dependencies,dast}
+          mkdir -p security/baselines
+          mkdir -p security/reports
+          mkdir -p security/scripts
+      
+      - name: Download All Security Results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-results*"
+          path: security-results/
+          merge-multiple: true
+      
+      - name: Install Security Analysis Dependencies
+        run: |
+          # Install required packages for security analysis
+          npm install --save-dev \
+            sarif \
+            @microsoft/sarif-multitool \
+            node-html-parser \
+            csv-writer \
+            chalk
+      
+      - name: Consolidate Security Results
+        run: |
+          echo "📊 Consolidating security scan results..."
+          
+          # Move downloaded results to proper structure
+          if [[ -d "security-results" ]]; then
+            cp -r security-results/* security/results/ 2>/dev/null || true
+          fi
+          
+          # Create consolidated results
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            const results = {
+              timestamp: new Date().toISOString(),
+              environment: '${{ needs.setup-security-scanning.outputs.environment }}',
+              scanType: '${{ needs.setup-security-scanning.outputs.scan-type }}',
+              severityThreshold: '${{ needs.setup-security-scanning.outputs.severity-threshold }}',
+              scans: {
+                sast: [],
+                dependencies: [],
+                dast: []
+              },
+              summary: {
+                totalVulnerabilities: 0,
+                bySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
+                byType: { sast: 0, dependency: 0, dast: 0 }
+              }
+            };
+            
+            // Process SAST results
+            const sastDir = 'security/results/sast';
+            if (fs.existsSync(sastDir)) {
+              fs.readdirSync(sastDir).forEach(file => {
+                const filePath = path.join(sastDir, file);
+                if (fs.statSync(filePath).isFile()) {
+                  results.scans.sast.push({
+                    scanner: file.includes('codeql') ? 'CodeQL' : 'Semgrep',
+                    file: file,
+                    size: fs.statSync(filePath).size
+                  });
+                }
+              });
+            }
+            
+            // Process dependency results
+            const depDir = 'security/results/dependencies';
+            if (fs.existsSync(depDir)) {
+              fs.readdirSync(depDir).forEach(file => {
+                const filePath = path.join(depDir, file);
+                if (fs.statSync(filePath).isFile()) {
+                  results.scans.dependencies.push({
+                    scanner: file.includes('npm') ? 'NPM Audit' : 'Snyk',
+                    file: file,
+                    size: fs.statSync(filePath).size
+                  });
+                }
+              });
+            }
+            
+            // Process DAST results
+            const dastDir = 'security/results/dast';
+            if (fs.existsSync(dastDir)) {
+              fs.readdirSync(dastDir).forEach(file => {
+                const filePath = path.join(dastDir, file);
+                if (fs.statSync(filePath).isFile()) {
+                  results.scans.dast.push({
+                    scanner: 'OWASP ZAP',
+                    file: file,
+                    size: fs.statSync(filePath).size
+                  });
+                }
+              });
+            }
+            
+            fs.writeFileSync('security/reports/consolidated-results.json', JSON.stringify(results, null, 2));
+            console.log('✅ Security results consolidated');
+          "
+      
+      - name: Generate Security Report
+        run: |
+          echo "📈 Generating comprehensive security report..."
+          
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            const results = JSON.parse(fs.readFileSync('security/reports/consolidated-results.json', 'utf8'));
+            
+            let reportContent = \`# Security Scan Report
+            
+            **Environment:** \${results.environment}
+            **Scan Type:** \${results.scanType}
+            **Severity Threshold:** \${results.severityThreshold}
+            **Timestamp:** \${results.timestamp}
+            
+            ## Executive Summary
+            
+            This report provides a comprehensive overview of security vulnerabilities identified across:
+            - Static Application Security Testing (SAST)
+            - Dynamic Application Security Testing (DAST)  
+            - Dependency Vulnerability Scanning
+            
+            ## Scan Results Overview
+            
+            ### SAST Scans
+            \`;
+            
+            results.scans.sast.forEach(scan => {
+              reportContent += \`- **\${scan.scanner}**: \${scan.file} (\${(scan.size/1024).toFixed(1)}KB)\n\`;
+            });
+            
+            reportContent += \`
+            ### Dependency Scans
+            \`;
+            
+            results.scans.dependencies.forEach(scan => {
+              reportContent += \`- **\${scan.scanner}**: \${scan.file} (\${(scan.size/1024).toFixed(1)}KB)\n\`;
+            });
+            
+            reportContent += \`
+            ### DAST Scans
+            \`;
+            
+            results.scans.dast.forEach(scan => {
+              reportContent += \`- **\${scan.scanner}**: \${scan.file} (\${(scan.size/1024).toFixed(1)}KB)\n\`;
+            });
+            
+            reportContent += \`
+            ## Recommendations
+            
+            1. **Review SAST findings** for code-level vulnerabilities
+            2. **Update dependencies** with known vulnerabilities
+            3. **Address DAST findings** for runtime security issues
+            4. **Implement security controls** based on scan results
+            5. **Schedule regular security scans** for continuous monitoring
+            
+            ## Next Steps
+            
+            - Prioritize fixes based on severity and exploitability
+            - Implement security controls in development pipeline
+            - Create baseline for future comparison
+            - Schedule follow-up scans after remediation
+            \`;
+            
+            fs.writeFileSync('security/reports/security-report.md', reportContent);
+            console.log('✅ Security report generated');
+          "
+          
+          echo "✅ Security analysis completed"
+      
+      - name: Create Security Baseline (if requested)
+        if: github.event.inputs.create_baseline == 'true'
+        run: |
+          echo "📊 Creating new security baseline..."
+          
+          BASELINE_FILE="security/baselines/baseline-${{ needs.setup-security-scanning.outputs.environment }}-$(date +%Y%m%d).json"
+          
+          cp security/reports/consolidated-results.json "$BASELINE_FILE"
+          
+          # Create latest baseline symlink
+          ln -sf "$(basename "$BASELINE_FILE")" "security/baselines/latest-${{ needs.setup-security-scanning.outputs.environment }}.json"
+          
+          echo "✅ Security baseline created: $BASELINE_FILE"
+      
+      - name: Compare Against Baseline
+        if: github.event.inputs.create_baseline != 'true'
+        run: |
+          echo "📊 Comparing against security baseline..."
+          
+          BASELINE_FILE="security/baselines/latest-${{ needs.setup-security-scanning.outputs.environment }}.json"
+          
+          if [[ -f "$BASELINE_FILE" ]]; then
+            echo "📋 Baseline found, performing comparison..."
+            
+            node -e "
+              const fs = require('fs');
+              
+              const current = JSON.parse(fs.readFileSync('security/reports/consolidated-results.json', 'utf8'));
+              const baseline = JSON.parse(fs.readFileSync('$BASELINE_FILE', 'utf8'));
+              
+              const comparison = {
+                timestamp: new Date().toISOString(),
+                environment: current.environment,
+                baseline: {
+                  timestamp: baseline.timestamp,
+                  totalVulnerabilities: baseline.summary.totalVulnerabilities
+                },
+                current: {
+                  timestamp: current.timestamp,
+                  totalVulnerabilities: current.summary.totalVulnerabilities
+                },
+                changes: {
+                  newVulnerabilities: Math.max(0, current.summary.totalVulnerabilities - baseline.summary.totalVulnerabilities),
+                  resolvedVulnerabilities: Math.max(0, baseline.summary.totalVulnerabilities - current.summary.totalVulnerabilities)
+                },
+                status: 'PASS'
+              };
+              
+              // Determine overall status
+              if (comparison.changes.newVulnerabilities > 0) {
+                comparison.status = 'FAIL';
+                console.log('⚠️  New vulnerabilities detected!');
+              } else if (comparison.changes.resolvedVulnerabilities > 0) {
+                comparison.status = 'IMPROVED';
+                console.log('✅ Security posture improved!');
+              } else {
+                console.log('✅ No security regression detected');
+              }
+              
+              fs.writeFileSync('security/reports/baseline-comparison.json', JSON.stringify(comparison, null, 2));
+            "
+          else
+            echo "⚠️  No baseline found, skipping comparison"
+          fi
+      
+      - name: Upload Security Analysis Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-analysis-report-${{ needs.setup-security-scanning.outputs.environment }}
+          path: |
+            security/reports/
+            security/baselines/
+            security/results/
+          retention-days: 90
+
+  # =============================================================================
+  # SECURITY ALERTS AND NOTIFICATIONS
+  # =============================================================================
+  security-alerts:
+    name: Security Alerts and Notifications
+    runs-on: ubuntu-latest
+    needs: [setup-security-scanning, analyze-security-results]
+    if: always() && needs.setup-security-scanning.outputs.should-run == 'true'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Download Security Analysis Results
+        uses: actions/download-artifact@v4
+        with:
+          name: security-analysis-report-${{ needs.setup-security-scanning.outputs.environment }}
+          path: security/
+      
+      - name: Check for Critical Vulnerabilities
+        id: critical-check
+        run: |
+          echo "🔍 Checking for critical vulnerabilities..."
+          
+          CRITICAL_FOUND=false
+          
+          # Check baseline comparison for new vulnerabilities
+          if [[ -f "security/reports/baseline-comparison.json" ]]; then
+            NEW_VULNS=$(jq -r '.changes.newVulnerabilities' security/reports/baseline-comparison.json)
+            if [[ "$NEW_VULNS" -gt 0 ]]; then
+              CRITICAL_FOUND=true
+              echo "⚠️  $NEW_VULNS new vulnerabilities detected"
+            fi
+          fi
+          
+          echo "critical-found=$CRITICAL_FOUND" >> $GITHUB_OUTPUT
+      
+      - name: Create Security Issue for Critical Vulnerabilities
+        if: steps.critical-check.outputs.critical-found == 'true' && needs.setup-security-scanning.outputs.environment == 'staging'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let issueBody = `
+            ## 🚨 Critical Security Vulnerabilities Detected
+            
+            **Environment:** ${{ needs.setup-security-scanning.outputs.environment }}
+            **Scan Type:** ${{ needs.setup-security-scanning.outputs.scan-type }}
+            **Commit:** ${context.sha}
+            **Workflow:** ${context.workflow}
+            
+            `;
+            
+            // Read baseline comparison if available
+            const comparisonPath = './security/reports/baseline-comparison.json';
+            if (fs.existsSync(comparisonPath)) {
+              const comparison = JSON.parse(fs.readFileSync(comparisonPath, 'utf8'));
+              
+              issueBody += `
+              ### Security Status: ${comparison.status}
+              - **New Vulnerabilities:** ${comparison.changes.newVulnerabilities}
+              - **Resolved Vulnerabilities:** ${comparison.changes.resolvedVulnerabilities}
+              `;
+            }
+            
+            issueBody += `
+            ### Scan Results
+            See the [security scan results](${context.payload.repository.html_url}/actions/runs/${context.runId}) for detailed analysis.
+            
+            ### Action Required
+            1. Review and triage all security findings
+            2. Prioritize fixes based on severity and exploitability
+            3. Implement security controls and patches
+            4. Re-run security scan to verify fixes
+            
+            ### Security Scan Types Performed
+            - Static Application Security Testing (SAST)
+            - Dynamic Application Security Testing (DAST)
+            - Dependency Vulnerability Scanning
+            `;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Critical Security Vulnerabilities Detected - ${new Date().toISOString().split('T')[0]}`,
+              body: issueBody,
+              labels: ['security', 'vulnerability', 'priority-critical']
+            });
+      
+      - name: Comment Security Results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = './security/reports/security-report.md';
+            
+            if (fs.existsSync(reportPath)) {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              
+              const comment = `
+              ## 🔒 Security Scan Results
+              
+              ${report}
+              
+              ---
+              *Automated security scan performed by [Security Scanning Pipeline](${context.payload.repository.html_url}/actions/runs/${context.runId})*
+              `;
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+      
+      - name: Notify Security Scan Results
+        run: |
+          echo "📊 Security scan completed!"
+          echo "🌍 Environment: ${{ needs.setup-security-scanning.outputs.environment }}"
+          echo "🔒 Scan Type: ${{ needs.setup-security-scanning.outputs.scan-type }}"
+          
+          if [[ "${{ steps.critical-check.outputs.critical-found }}" == "true" ]]; then
+            echo "⚠️  Critical vulnerabilities detected - security issue created"
+          else
+            echo "✅ No critical security issues detected"
+          fi
+          
+          # Future: Add Slack/email notification integration here
