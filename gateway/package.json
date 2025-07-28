@@ -1,0 +1,25 @@
+{
+  "name": "@firemni-asistent/api-gateway",
+  "version": "1.0.0",
+  "description": "API Gateway for Firemní Asistent microservices",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "echo 'Gateway build - not implemented yet'",
+    "dev": "echo 'Gateway dev - not implemented yet'",
+    "start": "echo 'Gateway start - not implemented yet'",
+    "test": "echo 'Gateway tests - not implemented yet'",
+    "test:coverage": "echo 'Gateway coverage - not implemented yet'",
+    "lint": "echo 'Gateway lint - not implemented yet'",
+    "lint:fix": "echo 'Gateway lint:fix - not implemented yet'",
+    "type-check": "echo 'Gateway type-check - not implemented yet'"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "keywords": [
+    "api-gateway",
+    "graphql-federation",
+    "microservices"
+  ],
+  "author": "Firemní Asistent Team",
+  "license": "MIT"
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@firemni-asistent/order-service",
+  "version": "1.0.0",
+  "description": "Order management microservice",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "echo 'Order service build - not implemented yet'",
+    "dev": "echo 'Order service dev - not implemented yet'",
+    "start": "echo 'Order service start - not implemented yet'",
+    "test": "echo 'Order service tests - not implemented yet'",
+    "test:integration": "echo 'Order service integration tests - not implemented yet'",
+    "test:coverage": "echo 'Order service coverage - not implemented yet'",
+    "lint": "echo 'Order service lint - not implemented yet'",
+    "lint:fix": "echo 'Order service lint:fix - not implemented yet'",
+    "type-check": "echo 'Order service type-check - not implemented yet'",
+    "seed": "echo 'Order service seed - not implemented yet'"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "keywords": [
+    "microservice",
+    "order-management"
+  ],
+  "author": "Firemní Asistent Team",
+  "license": "MIT"
+}

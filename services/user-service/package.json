@@ -1,0 +1,27 @@
+{
+  "name": "@firemni-asistent/user-service",
+  "version": "1.0.0",
+  "description": "User management microservice",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "echo 'User service build - not implemented yet'",
+    "dev": "echo 'User service dev - not implemented yet'",
+    "start": "echo 'User service start - not implemented yet'",
+    "test": "echo 'User service tests - not implemented yet'",
+    "test:integration": "echo 'User service integration tests - not implemented yet'",
+    "test:coverage": "echo 'User service coverage - not implemented yet'",
+    "lint": "echo 'User service lint - not implemented yet'",
+    "lint:fix": "echo 'User service lint:fix - not implemented yet'",
+    "type-check": "echo 'User service type-check - not implemented yet'",
+    "seed": "echo 'User service seed - not implemented yet'"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "keywords": [
+    "microservice",
+    "user-management",
+    "authentication"
+  ],
+  "author": "Firemní Asistent Team",
+  "license": "MIT"
+}

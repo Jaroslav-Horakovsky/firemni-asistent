@@ -1,0 +1,25 @@
+{
+  "name": "@firemni-asistent/billing-service",
+  "version": "1.0.0",
+  "description": "Billing management microservice",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "echo 'Billing service build - not implemented yet'",
+    "dev": "echo 'Billing service dev - not implemented yet'",
+    "start": "echo 'Billing service start - not implemented yet'",
+    "test": "echo 'Billing service tests - not implemented yet'",
+    "test:integration": "echo 'Billing service integration tests - not implemented yet'",
+    "test:coverage": "echo 'Billing service coverage - not implemented yet'",
+    "lint": "echo 'Billing service lint - not implemented yet'",
+    "lint:fix": "echo 'Billing service lint:fix - not implemented yet'",
+    "type-check": "echo 'Billing service type-check - not implemented yet'"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "keywords": [
+    "microservice",
+    "billing-management"
+  ],
+  "author": "Firemní Asistent Team",
+  "license": "MIT"
+}
