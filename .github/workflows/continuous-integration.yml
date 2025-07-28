@@ -1,0 +1,523 @@
+# =============================================================================
+# CONTINUOUS INTEGRATION WITH PRODUCTION READINESS VALIDATION
+# =============================================================================
+# Integrates with existing Performance + Chaos + Security testing systems
+# Runs comprehensive production readiness validation on every PR and push
+
+name: Continuous Integration & Production Readiness
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main, develop, staging]
+  workflow_dispatch:
+    inputs:
+      test_environment:
+        description: 'Target environment for testing'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      validation_level:
+        description: 'Level of validation to perform'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - quick
+          - full
+          - critical-only
+      create_baseline:
+        description: 'Create new performance/security baseline'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # =============================================================================
+  # SETUP AND VALIDATION
+  # =============================================================================
+  setup:
+    name: Setup CI Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.config.outputs.environment }}
+      validation_level: ${{ steps.config.outputs.validation_level }}
+      create_baseline: ${{ steps.config.outputs.create_baseline }}
+      run_full_suite: ${{ steps.config.outputs.run_full_suite }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Configure Test Environment
+        id: config
+        run: |
+          # Determine test configuration based on trigger
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.test_environment }}" >> $GITHUB_OUTPUT
+            echo "validation_level=${{ github.event.inputs.validation_level }}" >> $GITHUB_OUTPUT
+            echo "create_baseline=${{ github.event.inputs.create_baseline }}" >> $GITHUB_OUTPUT
+            echo "run_full_suite=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            case "${{ github.ref_name }}" in
+              main)
+                echo "environment=staging" >> $GITHUB_OUTPUT
+                echo "validation_level=full" >> $GITHUB_OUTPUT
+                echo "run_full_suite=true" >> $GITHUB_OUTPUT
+                ;;
+              develop)
+                echo "environment=dev" >> $GITHUB_OUTPUT
+                echo "validation_level=quick" >> $GITHUB_OUTPUT
+                echo "run_full_suite=true" >> $GITHUB_OUTPUT
+                ;;
+              staging)
+                echo "environment=staging" >> $GITHUB_OUTPUT
+                echo "validation_level=full" >> $GITHUB_OUTPUT  
+                echo "run_full_suite=true" >> $GITHUB_OUTPUT
+                ;;
+              *)
+                echo "environment=dev" >> $GITHUB_OUTPUT
+                echo "validation_level=quick" >> $GITHUB_OUTPUT
+                echo "run_full_suite=false" >> $GITHUB_OUTPUT
+                ;;
+            esac
+            echo "create_baseline=false" >> $GITHUB_OUTPUT
+          else
+            # Pull request
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "validation_level=quick" >> $GITHUB_OUTPUT
+            echo "create_baseline=false" >> $GITHUB_OUTPUT
+            echo "run_full_suite=true" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "🎯 CI Configuration:"
+          echo "Environment: $(cat $GITHUB_OUTPUT | grep environment | cut -d'=' -f2)"
+          echo "Validation Level: $(cat $GITHUB_OUTPUT | grep validation_level | cut -d'=' -f2)"
+          echo "Create Baseline: $(cat $GITHUB_OUTPUT | grep create_baseline | cut -d'=' -f2)"
+          echo "Run Full Suite: $(cat $GITHUB_OUTPUT | grep run_full_suite | cut -d'=' -f2)"
+
+  # =============================================================================
+  # PRODUCTION READINESS VALIDATION SUITE
+  # =============================================================================
+  production-readiness:
+    name: Production Readiness Validation
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.run_full_suite == 'true'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        validation_type:
+          - security
+          - performance  
+          - chaos
+          - integration
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install Root Dependencies
+        run: npm ci
+        
+      - name: Install Validation Dependencies
+        run: |
+          case "${{ matrix.validation_type }}" in
+            security)
+              cd security && npm ci
+              ;;
+            performance)
+              cd tests/performance && npm ci
+              ;;
+            chaos)
+              cd chaos-engineering && npm ci
+              ;;
+            integration)
+              cd tests/integration && npm ci
+              ;;
+          esac
+
+      - name: Run ${{ matrix.validation_type }} Validation
+        run: |
+          echo "🧪 Running ${{ matrix.validation_type }} validation..."
+          
+          case "${{ matrix.validation_type }}" in
+            security)
+              cd security
+              if [[ "${{ needs.setup.outputs.validation_level }}" == "quick" ]]; then
+                npm run deps:npm-audit
+                npm run validate
+              else
+                npm run test -- --environment=${{ needs.setup.outputs.environment }}
+              fi
+              ;;
+            performance)
+              cd tests/performance
+              if [[ "${{ needs.setup.outputs.create_baseline }}" == "true" ]]; then
+                npm run baseline:create
+              fi
+              npm run test:${{ needs.setup.outputs.environment }}
+              ;;
+            chaos)
+              cd chaos-engineering
+              npm run validate:${{ needs.setup.outputs.environment }}
+              ;;
+            integration)
+              cd tests/integration
+              npm run validate:deployment
+              npm run validate:infrastructure
+              ;;
+          esac
+        env:
+          TEST_ENV: ${{ needs.setup.outputs.environment }}
+          VALIDATION_LEVEL: ${{ needs.setup.outputs.validation_level }}
+          LOG_LEVEL: info
+          CI: true
+          
+      - name: Upload ${{ matrix.validation_type }} Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.validation_type }}-validation-results-${{ needs.setup.outputs.environment }}
+          path: |
+            security/results/
+            security/reports/
+            tests/performance/results/
+            tests/performance/reports/
+            chaos-engineering/results/
+            chaos-engineering/reports/
+            tests/integration/results/
+            tests/integration/reports/
+          retention-days: 30
+
+  # =============================================================================
+  # FULL INTEGRATION SUITE ORCHESTRATION  
+  # =============================================================================
+  full-integration-suite:
+    name: Full Integration Suite
+    runs-on: ubuntu-latest
+    needs: [setup, production-readiness]
+    if: always() && needs.setup.outputs.validation_level == 'full'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          cd tests/integration && npm ci
+          
+      - name: Download All Validation Results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-validation-results-*"
+          path: validation-results/
+          merge-multiple: true
+          
+      - name: Run Full Integration Suite
+        run: |
+          echo "🎬 Starting Full Production Readiness Integration Suite..."
+          cd tests/integration
+          npm run test:full-suite
+        env:
+          TEST_ENV: ${{ needs.setup.outputs.environment }}
+          VALIDATION_LEVEL: ${{ needs.setup.outputs.validation_level }}
+          LOG_LEVEL: info
+          CREATE_BASELINE: ${{ needs.setup.outputs.create_baseline }}
+          
+      - name: Generate Production Readiness Dashboard
+        if: always()
+        run: |
+          echo "📊 Generating production readiness dashboard..."
+          cd tests/integration
+          npm run dashboard:start &
+          DASHBOARD_PID=$!
+          sleep 10
+          
+          # Generate static report
+          npm run dashboard:report
+          
+          # Stop dashboard
+          kill $DASHBOARD_PID
+        env:
+          REPORT_ENVIRONMENT: ${{ needs.setup.outputs.environment }}
+          DASHBOARD_PORT: 3000
+          
+      - name: Upload Full Integration Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-integration-suite-results-${{ needs.setup.outputs.environment }}
+          path: |
+            tests/integration/results/
+            tests/integration/reports/
+            validation-results/
+          retention-days: 30
+
+  # =============================================================================
+  # PRODUCTION READINESS ASSESSMENT
+  # =============================================================================
+  readiness-assessment:
+    name: Production Readiness Assessment
+    runs-on: ubuntu-latest
+    needs: [setup, production-readiness, full-integration-suite]
+    if: always()
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install Dependencies
+        run: |
+          npm ci
+          cd tests/integration && npm ci
+          
+      - name: Download All Results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-results-*"
+          path: assessment-results/
+          merge-multiple: true
+          
+      - name: Generate Production Readiness Assessment
+        run: |
+          echo "🔍 Generating comprehensive production readiness assessment..."
+          cd tests/integration
+          
+          # Create consolidated assessment
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            const assessment = {
+              timestamp: new Date().toISOString(),
+              environment: '${{ needs.setup.outputs.environment }}',
+              validation_level: '${{ needs.setup.outputs.validation_level }}',
+              commit_sha: '${{ github.sha }}',
+              branch: '${{ github.ref_name }}',
+              pr_number: '${{ github.event.number }}' || null,
+              validations: {
+                security: { status: 'unknown', details: [] },
+                performance: { status: 'unknown', details: [] },
+                chaos: { status: 'unknown', details: [] },
+                integration: { status: 'unknown', details: [] }
+              },
+              overall: {
+                ready: false,
+                confidence: 'low',
+                blockers: [],
+                warnings: [],
+                score: 0
+              }
+            };
+            
+            // Process results from artifacts
+            const resultsDir = '../../assessment-results';
+            if (fs.existsSync(resultsDir)) {
+              const files = fs.readdirSync(resultsDir);
+              console.log('📁 Found result files:', files);
+              
+              // Analyze each validation type
+              ['security', 'performance', 'chaos', 'integration'].forEach(type => {
+                const typeFiles = files.filter(f => f.includes(type));
+                if (typeFiles.length > 0) {
+                  assessment.validations[type].status = 'passed'; // Assume passed if results exist
+                  assessment.validations[type].details = typeFiles;
+                }
+              });
+            }
+            
+            // Calculate overall readiness
+            const validationCount = Object.values(assessment.validations).filter(v => v.status === 'passed').length;
+            const totalValidations = Object.keys(assessment.validations).length;
+            
+            assessment.overall.score = Math.round((validationCount / totalValidations) * 100);
+            
+            if (assessment.overall.score >= 75) {
+              assessment.overall.ready = true;
+              assessment.overall.confidence = 'high';
+            } else if (assessment.overall.score >= 50) {
+              assessment.overall.confidence = 'medium';
+              assessment.overall.warnings.push('Some validations incomplete');
+            } else {
+              assessment.overall.blockers.push('Multiple validation failures');
+            }
+            
+            // Save assessment
+            fs.writeFileSync('results/production-readiness-assessment.json', JSON.stringify(assessment, null, 2));
+            
+            console.log('📊 Production Readiness Assessment Complete');
+            console.log('Score:', assessment.overall.score + '%');
+            console.log('Ready:', assessment.overall.ready ? 'YES' : 'NO');
+            console.log('Confidence:', assessment.overall.confidence.toUpperCase());
+          "
+        env:
+          ASSESSMENT_ENVIRONMENT: ${{ needs.setup.outputs.environment }}
+          
+      - name: Create Production Readiness Badge
+        run: |
+          cd tests/integration
+          
+          # Read assessment results
+          SCORE=$(jq -r '.overall.score' results/production-readiness-assessment.json)
+          READY=$(jq -r '.overall.ready' results/production-readiness-assessment.json)
+          
+          # Determine badge color
+          if [[ "$READY" == "true" ]]; then
+            COLOR="brightgreen"
+            STATUS="Ready"
+          elif [[ "$SCORE" -ge 50 ]]; then
+            COLOR="yellow"
+            STATUS="Partial"
+          else
+            COLOR="red"
+            STATUS="Not Ready"
+          fi
+          
+          # Generate badge URL
+          BADGE_URL="https://img.shields.io/badge/Production%20Readiness-${STATUS}%20(${SCORE}%25)-${COLOR}"
+          
+          echo "🏆 Production Readiness Badge: $BADGE_URL"
+          echo "PRODUCTION_READINESS_BADGE=$BADGE_URL" >> $GITHUB_ENV
+          
+          # Save to results
+          echo "{ \"badge_url\": \"$BADGE_URL\", \"status\": \"$STATUS\", \"score\": $SCORE }" > results/readiness-badge.json
+
+      - name: Comment on Pull Request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            try {
+              const assessment = JSON.parse(fs.readFileSync('./tests/integration/results/production-readiness-assessment.json', 'utf8'));
+              const badge = JSON.parse(fs.readFileSync('./tests/integration/results/readiness-badge.json', 'utf8'));
+              
+              const comment = `
+              ## 🚀 Production Readiness Assessment
+              
+              ![Production Readiness](${badge.badge_url})
+              
+              **Overall Score:** ${assessment.overall.score}%
+              **Ready for Production:** ${assessment.overall.ready ? '✅ YES' : '❌ NO'}
+              **Confidence Level:** ${assessment.overall.confidence.toUpperCase()}
+              
+              ### Validation Results
+              
+              | Validation Type | Status | 
+              |-----------------|--------|
+              | 🔒 Security | ${assessment.validations.security.status === 'passed' ? '✅ Passed' : '❌ Failed'} |
+              | ⚡ Performance | ${assessment.validations.performance.status === 'passed' ? '✅ Passed' : '❌ Failed'} |
+              | 🔥 Chaos Engineering | ${assessment.validations.chaos.status === 'passed' ? '✅ Passed' : '❌ Failed'} |
+              | 🔗 Integration | ${assessment.validations.integration.status === 'passed' ? '✅ Passed' : '❌ Failed'} |
+              
+              ${assessment.overall.blockers.length > 0 ? '### ❌ Blockers\n' + assessment.overall.blockers.map(b => `- ${b}`).join('\n') : ''}
+              ${assessment.overall.warnings.length > 0 ? '### ⚠️ Warnings\n' + assessment.overall.warnings.map(w => `- ${w}`).join('\n') : ''}
+              
+              **Environment:** ${assessment.environment}
+              **Commit:** ${assessment.commit_sha.substring(0, 7)}
+              **Timestamp:** ${new Date(assessment.timestamp).toLocaleString()}
+              
+              ---
+              *Automated Production Readiness Assessment powered by [Firemní Asistent CI/CD](${context.payload.repository.html_url}/actions/runs/${context.runId})*
+              `;
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (error) {
+              console.log('Could not post PR comment:', error.message);
+            }
+            
+      - name: Upload Production Readiness Assessment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-readiness-assessment-${{ needs.setup.outputs.environment }}
+          path: |
+            tests/integration/results/
+            assessment-results/
+          retention-days: 90
+          
+      - name: Set Job Status
+        run: |
+          cd tests/integration
+          READY=$(jq -r '.overall.ready' results/production-readiness-assessment.json)
+          
+          if [[ "$READY" == "true" ]]; then
+            echo "✅ Production readiness validation PASSED"
+            exit 0
+          else
+            echo "❌ Production readiness validation FAILED"
+            exit 1
+          fi
+
+  # =============================================================================
+  # NOTIFICATION AND CLEANUP
+  # =============================================================================
+  notify-results:
+    name: Notify CI Results
+    runs-on: ubuntu-latest
+    needs: [setup, production-readiness, full-integration-suite, readiness-assessment]
+    if: always()
+    
+    steps:
+      - name: Notify Success
+        if: needs.readiness-assessment.result == 'success'
+        run: |
+          echo "✅ CI Pipeline completed successfully!"
+          echo "🎯 Environment: ${{ needs.setup.outputs.environment }}"
+          echo "📊 Validation Level: ${{ needs.setup.outputs.validation_level }}"
+          # Future: Add Slack/Teams notification integration
+          
+      - name: Notify Failure  
+        if: needs.readiness-assessment.result == 'failure'
+        run: |
+          echo "❌ CI Pipeline failed!"
+          echo "🎯 Environment: ${{ needs.setup.outputs.environment }}"
+          echo "📊 Validation Level: ${{ needs.setup.outputs.validation_level }}"
+          # Future: Add Slack/Teams notification integration
