@@ -123,6 +123,25 @@ jobs:
       - name: Security Dependency Scan
         run: npm audit --audit-level=moderate
       
+      - name: Run Production Readiness Integration Tests
+        run: |
+          echo "🧪 Running Production Readiness Validation Suite..."
+          cd tests/integration
+          npm install
+          npm run test:full-suite
+        env:
+          TEST_ENV: ${{ needs.detect-environment.outputs.environment }}
+          LOG_LEVEL: info
+      
+      - name: Upload Integration Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results-${{ needs.detect-environment.outputs.environment }}
+          path: |
+            tests/integration/results/
+          retention-days: 30
+      
       - name: SAST Security Scan
         uses: github/super-linter@v5
         env:
@@ -240,13 +259,34 @@ jobs:
           #     --allow-unauthenticated
           # done
       
-      - name: Run Smoke Tests
+      - name: Run Post-Deployment Validation
         run: |
-          echo "⚠️  Skipping smoke tests - services not deployed"
-          # echo "🧪 Running smoke tests against development environment..."
-          # npm run test:smoke:dev
+          echo "🔍 Running post-deployment production readiness validation..."
+          cd tests/integration
+          npm run validate:deployment
+          npm run validate:infrastructure
         env:
           TEST_BASE_URL: https://dev.firemni-asistent.cz
+          DEPLOYMENT_ENVIRONMENT: dev
+      
+      - name: Generate Production Readiness Report
+        if: always()
+        run: |
+          echo "📊 Generating production readiness dashboard report..."
+          cd tests/integration
+          npm run dashboard:report
+        env:
+          REPORT_ENVIRONMENT: dev
+      
+      - name: Upload Dev Environment Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-readiness-report-dev
+          path: |
+            tests/integration/results/
+            tests/integration/reports/
+          retention-days: 30
 
   # =============================================================================
   # STAGING ENVIRONMENT DEPLOYMENT

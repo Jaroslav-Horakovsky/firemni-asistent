@@ -126,11 +126,18 @@ logs/
 *.crt
 secrets/
 credentials/
+# Local development credentials (NEVER commit!)
+CREDENTIALS_LOCAL.md
+*.credentials
+.secrets
+local-config.md
 
 # Test artifacts
 test-results/
 screenshots/
 videos/
+# Project screenshots (development documentation)
+Screenshots/
 
 # Performance test results
 tests/performance/results/
