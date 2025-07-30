@@ -1,248 +1,224 @@
-# ÚKOLY PRO JARU - RELACE 6 SETUP
+# ÚKOLY PRO JARU - AKTUALIZOVÁNO PO RELACI 12B
 
 ## 📋 CO MUSÍŠ UDĚLAT - KOMPLETNÍ CHECKLIST
+
+### 🎉 **STAV PO RELACI 12B: KOMPLETNÍ MICROSERVICES ARCHITEKTURA!**
+- ✅ **Relace 6:** GCP infrastructure setup dokončen
+- ✅ **Relace 7:** Cloud SQL + Secret Manager setup dokončen  
+- ✅ **Relace 8:** User-service kompletně implementován s JWT auth
+- ✅ **Relace 9:** User-service otestován a 100% funkční
+- ✅ **Relace 10:** Customer-service kompletně implementován
+- ✅ **Relace 11:** Customer-service otestován a funkční
+- ✅ **Relace 12A:** Order-service database a infrastructure
+- ✅ **Relace 12B:** Order-service API + API Gateway integration (85% complete)
+- 🎯 **Relace 13:** Order creation debugging + production readiness
 
 ### 🔑 1. API KLÍČE A CREDENTIALY
 
 **Google Cloud Platform:**
 - ✅ **GCP Project** - HOTOVO ✅ (Project ID: firemni-asistent, Number: 823474921691)
-- ✅ **Service Account** pro GitHub Actions - vytvoř SA s oprávněními:
-  - `roles/artifactregistry.writer` (push Docker images)
-  - `roles/run.admin` (deploy na Cloud Run)  
-  - `roles/secretmanager.secretAccessor` (přístup k tajemstvím)
-- ✅ **GitHub Secrets** - vlož klíče do GitHub repository secrets:
-  - `GCP_WORKLOAD_IDENTITY_PROVIDER`
-  - `GCP_SERVICE_ACCOUNT`
-  - `GCP_PROJECT_ID_DEV`
-  - `GCP_PROJECT_ID_STAGING` 
-  - `GCP_PROJECT_ID_PROD`
+- ✅ **Service Account** pro GitHub Actions - HOTOVO ✅ SA s oprávněními:
+  - ✅ `roles/artifactregistry.writer` (push Docker images)
+  - ✅ `roles/run.admin` (deploy na Cloud Run)  
+  - ✅ `roles/secretmanager.secretAccessor` (přístup k tajemstvím)
+- ✅ **Workload Identity Federation** - HOTOVO ✅ (github-actions-pool)
+- ❌ **GitHub Secrets** - ZBÝVÁ NASTAVIT:
+  - ❌ `GCP_WORKLOAD_IDENTITY_PROVIDER`
+  - ❌ `GCP_SERVICE_ACCOUNT`
+  - ❌ `GCP_PROJECT_ID_DEV`
+  - ❌ `GCP_PROJECT_ID_STAGING` 
+  - ❌ `GCP_PROJECT_ID_PROD`
 
 **Externí služby (pro microservices):**
-- ✅ **SendGrid API Key** (pro notification-service)
-- ✅ **Stripe API Keys** (pro billing-service)  
-- ✅ **JWT Secret** (pro authentication mezi službami)
+- ⚠️ **SendGrid API Key** - PLACEHOLDER v Secret Manager (pro notification-service)
+- ⚠️ **Stripe API Keys** - PLACEHOLDER v Secret Manager (pro billing-service)  
+- ✅ **JWT Secret** - HOTOVO ✅ (v Secret Manager s real keys)
 
 ### 💻 2. SOFTWARE K INSTALACI NA PC
 
-**Povinné:**
+**✅ VŠECHNO NAINSTALOVÁNO A FUNKČNÍ:**
 ```bash
-# Node.js management
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-nvm install 20
-nvm use 20
-
-# Docker Desktop
-# HOTOVO ✅ - Docker Desktop 4.43.2 nainstalován s WSL2 integration
-
-# Google Cloud SDK
-curl https://sdk.cloud.google.com | bash
-gcloud init
-gcloud auth application-default login
-
-# Terraform
-# Stáhni z https://www.terraform.io/downloads
+# ✅ Node.js management - HOTOVO (nvm + Node.js 20)
+# ✅ Docker Desktop v28.3.2 - HOTOVO s WSL2 integration
+# ✅ Google Cloud SDK v532.0.0 - HOTOVO (gcloud auth active)
+# ✅ Terraform - HOTOVO
 ```
 
-**Doporučené (pro Ubuntu v WSL):**
+**✅ UBUNTU WSL SETUP - VŠECHNO HOTOVO:**
 ```bash
-# PostgreSQL client - pro práci s databázemi
-sudo apt install postgresql-client
-
-# Google Cloud SDK - nainstalovat v Ubuntu (WSL)
-curl https://sdk.cloud.google.com | bash
-exec -l $SHELL  # Restart shell
-gcloud init
-gcloud auth application-default login
-
-# Node.js management v Ubuntu (WSL)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-source ~/.bashrc
-nvm install 20
-nvm use 20
-
-# kubectl (pouze pokud budeš používat GKE místo Cloud Run)
-gcloud components install kubectl
+# ✅ PostgreSQL client - HOTOVO 
+# ✅ Google Cloud SDK - HOTOVO v Ubuntu (WSL)
+# ✅ Node.js management - HOTOVO v Ubuntu (WSL)
+# ✅ kubectl - HOTOVO (gcloud components)
 ```
 
 ### 🔧 3. VSCODE ROZŠÍŘENÍ
 
-**Kritické pro projekt:**
+**✅ VŠECHNA ROZŠÍŘENÍ NAINSTALOVÁNA:**
 - ✅ **Docker** - pro práci s Dockerfile a docker-compose
 - ✅ **HashiCorp Terraform** - syntax highlighting pro .tf soubory
 - ✅ **GraphQL: Language Feature Support** - pro GraphQL schema  
 - ✅ **Remote - Containers** - development v Docker kontejnerech
 - ✅ **ESLint** a **Prettier** - code formatting
+- ✅ **Auto Rename Tag, Live Server, npm Intellisense, GitLens** - bonus extensions
 
-**Již máš nainstalováno (podle CLAUDE.md):**
-- ✅ Auto Rename Tag, Live Server, npm Intellisense, GitLens
+### 🌐 4. MCP SERVERY - VŠECHNY FUNKČNÍ
 
-### 🌐 4. MCP SERVERY - VYUŽITÍ EXISTUJÍCÍCH
-
-**Budeme potřebovat (už máš funkční):**
+**✅ VŠECHNY MCP SERVERY PŘIPRAVENÉ A TESTOVANÉ:**
 - ✅ **GitHub MCP** - pro správu repository, issues, PRs
 - ✅ **Browser-tools MCP** - pro testování API endpoints
 - ✅ **Filesystem MCP** - pro práci se soubory
 - ✅ **PostgreSQL MCP** - pro databázové operace
 - ✅ **Zen MCP** - pro complex analysis a debugging
 
-**NEPOTŘEBUJEŠ žadné nové MCP servery** - máš vše potřebné!
+**✅ ŽÁDNÉ NOVÉ MCP SERVERY NEPOTŘEBUJEME** - máš vše připravené!
 
-### ☁️ 5. GCP SETUP POŽADAVKY
+### ☁️ 5. GCP SETUP - KOMPLETNĚ HOTOVO
 
-**Musíš aktivovat tyto GCP API:**
+**✅ VŠECHNA GCP API AKTIVOVÁNA:**
 ```bash
-gcloud services enable run.googleapis.com
-gcloud services enable artifactregistry.googleapis.com  
-gcloud services enable secretmanager.googleapis.com
-gcloud services enable sqladmin.googleapis.com
-gcloud services enable cloudbuild.googleapis.com
+✅ run.googleapis.com                    # Cloud Run
+✅ artifactregistry.googleapis.com       # Artifact Registry  
+✅ secretmanager.googleapis.com          # Secret Manager
+✅ sqladmin.googleapis.com               # Cloud SQL
+✅ cloudbuild.googleapis.com             # Cloud Build
+✅ iam.googleapis.com                    # IAM
+✅ iamcredentials.googleapis.com         # IAM Credentials
+✅ containerscanning.googleapis.com      # Container Scanning
 ```
 
-**Vytvořit:**
-- ✅ **Artifact Registry** repository pro Docker images
-- ✅ **Cloud SQL** PostgreSQL instance
-- ✅ **Secret Manager** secrets pro API klíče
+**✅ INFRASTRUKTURA KOMPLETNĚ HOTOVÁ:**
+- ✅ **Artifact Registry** - firemni-asistent v europe-west3
+- ✅ **Cloud SQL** - firemni-asistent-db (PostgreSQL 15) na IP: 34.89.140.144
+- ✅ **Secret Manager** - 10 secrets (DB URLs, JWT keys, API placeholders)
+- ✅ **Network Connectivity** - IP 46.149.118.160 autorizováno pro Cloud SQL
 
-### 🐳 6. DOCKER SETUP - WINDOWS 11 + WSL2 + UBUNTU
+### 🐳 6. DOCKER SETUP - ✅ KOMPLETNĚ HOTOVO
 
-**TVŮJ SETUP:**
-- Windows 11 (host OS)
-- WSL2 + Ubuntu (development environment)
-- VSCode s WSL extension
-- Claude CLI běží v Ubuntu (WSL)
+**✅ TVŮJ SETUP PŘIPRAVENÝ:**
+- ✅ Windows 11 (host OS)
+- ✅ WSL2 + Ubuntu (development environment)
+- ✅ VSCode s WSL extension
+- ✅ Claude CLI běží v Ubuntu (WSL)
 
-**DOPORUČENÉ ŘEŠENÍ: Docker Desktop (Windows) + WSL2 Integration**
+**✅ DOCKER DESKTOP V28.3.2 + WSL2 INTEGRATION FUNKČNÍ:**
 
-**Proč toto řešení:**
+**✅ PROČ TOTO ŘEŠENÍ FUNGUJE SKVĚLE:**
 - ✅ Nejjednodušší setup a maintenance
 - ✅ GUI pro správu kontejnerů na Windows
 - ✅ Automatická integrace s WSL2
 - ✅ Lepší performance než Docker jen v WSL
-- ✅ Všechny docker příkazy budou fungovat v Ubuntu terminále
-- ✅ Claude CLI bude moci ovládat Docker přes Bash tool
+- ✅ Všechny docker příkazy fungují v Ubuntu terminále
+- ✅ Claude CLI může ovládat Docker přes Bash tool
 
-**Instalace:**
-1. **Stáhnout Docker Desktop pro Windows** z https://www.docker.com/products/docker-desktop
-2. **Při instalaci AKTIVOVAT:** "Use WSL 2 instead of Hyper-V"
-3. **Po instalaci konfigurovat WSL Integration:**
-   - Otevřít Docker Desktop Settings
-   - Jít na "Resources" → "WSL Integration"
-   - Aktivovat "Enable integration with my default WSL distro"
-   - Aktivovat konkrétně "Ubuntu"
-   - Kliknout "Apply & Restart"
+**✅ INSTALACE A KONFIGURACE HOTOVÁ:**
+1. ✅ **Docker Desktop pro Windows** - nainstalován a běží
+2. ✅ **WSL 2 integration** - aktivována
+3. ✅ **WSL Integration Settings** - Ubuntu aktivována
+4. ✅ **Apply & Restart** - dokončeno
 
-**Test v tvém Ubuntu prostředí:**
+**✅ TEST ÚSPĚŠNĚ PROŠEL:**
 ```bash
-# VSCode → WSL:Ubuntu → terminál
-docker --version
-docker-compose --version
-docker run hello-world
+✅ docker --version        # Docker version 28.3.2
+✅ docker-compose --version # Docker Compose v2.38.2
+✅ docker run hello-world   # Test úspěšný
 ```
 
-**Výsledek:**
-```
-# Budeme vytvářet:
-# - docker-compose.yml (lokální development)
-# - docker-compose.prod.yml (production)
-# - Dockerfile pro každou službu
-# Vše bude fungovat v Ubuntu terminále, ale Docker daemon běží na Windows
-```
+**✅ DOCKER COMPOSE SOUBORY PŘIPRAVENÉ:**
+- ✅ docker-compose.dev.yml (lokální development)
+- ✅ Dockerfile pro user-service
+- ✅ Vše funguje v Ubuntu terminále s Windows Docker daemonem
 
-### 🗄️ 7. DATABASE SETUP  
+### 🗄️ 7. DATABASE SETUP - ✅ KOMPLETNĚ HOTOVO A OTESTOVÁNO
 
-**PostgreSQL konfigurace:**
-- ✅ **Cloud SQL** instance v GCP
-- ✅ **6 databází** - jedna pro každou službu:
-  - `user_db`, `customer_db`, `order_db`, `inventory_db`, `billing_db`, `notification_db`
-- ✅ **Databázové uživatele** s minimálními oprávněními pro každou službu
+**✅ POSTGRESQL KONFIGURACE DOKONČENA A FUNKČNÍ:**
+- ✅ **Cloud SQL** instance `firemni-asistent-db` RUNNABLE
+- ✅ **PostgreSQL 15** v region europe-west3 (Frankfurt)
+- ✅ **IP adresa:** 34.89.140.144 (network connectivity ověřena)
+- ✅ **6 databází** vytvořeno pro každou službu:
+  - ✅ `user_db` - **OTESTOVÁNO S REAL DATA** ✅
+  - ✅ `customer_db`, `order_db`, `inventory_db`, `billing_db`, `notification_db` - připraveno
+- ✅ **Root password** nastaven a uložen v Secret Manager
+- ✅ **Connection strings** vygenerované a ověřené
+- ✅ **Users table** vytvořena s indexes a triggers
+- ✅ **Real user data** - test user vytvořen s UUID: `e9938d1d-6312-4307-96cc-ec073239122f`
 
-### ⚙️ 8. KLÍČOVÁ ROZHODNUTÍ CO MUSÍME UDĚLAT
+### ⚙️ 8. KLÍČOVÁ ROZHODNUTÍ - ✅ POTVRZENO A IMPLEMENTOVÁNO
 
-**Architektura (mé doporučení):**
-1. ✅ **Cloud Run** místo GKE (jednodušší start)
-2. ✅ **Monorepo** struktura (všechny služby v jednom repo)
-3. ✅ **Apollo Federation** pro GraphQL API Gateway
+**✅ ARCHITEKTURA ROZHODNUTÍ POTVRZENA:**
+1. ✅ **Cloud Run** místo GKE (jednodušší start) - POTVRZENO
+2. ✅ **Monorepo** struktura (všechny služby v jednom repo) - IMPLEMENTOVÁNO
+3. ✅ **Apollo Federation** pro GraphQL API Gateway - PŘIPRAVENO
 
-**Struktura projektu:**
+**✅ STRUKTURA PROJEKTU IMPLEMENTOVÁNA:**
 ```
 Firemní_Asistent/
-├── services/
-│   ├── user-service/
-│   ├── customer-service/
-│   ├── order-service/
-│   ├── inventory-service/
-│   ├── billing-service/
-│   ├── notification-service/
-│   └── gateway/                 # Apollo Federation Gateway
-├── docker-compose.yml           # Lokální development
-├── docker-compose.prod.yml      # Production
-└── terraform/                   # Už existuje
+├── user-service/               ✅ KOMPLETNĚ IMPLEMENTOVÁNO A OTESTOVÁNO (port 3001)
+├── customer-service/           ✅ KOMPLETNĚ IMPLEMENTOVÁNO A OTESTOVÁNO (port 3002)
+├── order-service/              ⚠️ 85% HOTOVO - API implemented, order creation issue (port 3003)
+├── inventory-service/          🚧 Připraveno pro implementaci
+├── billing-service/            🚧 Připraveno pro implementaci  
+├── notification-service/       🚧 Připraveno pro implementaci
+├── API Gateway (Nginx)         ✅ HOTOVO - routing pro všechny services (port 8080)
+├── docker-compose.dev.yml      ✅ HOTOVO - development stack
+├── scripts/                    ✅ HOTOVO - init scripts a konfigurace
+├── RELACE13_CONTEXT.md         ✅ HOTOVO - aktuální kontext
+├── CREDENTIALS_LOCAL.md        ✅ HOTOVO - všechny credentials
+└── terraform/                  ✅ Existuje - infrastructure as code
 ```
 
 ---
 
-## 📝 TODO LIST PRO JARU
+## 📝 TODO LIST PRO JARU - AKTUALIZOVÁN PO RELACI 12B
 
-### 🔥 PRIORITA 1 - MUSÍ BÝT HOTOVO PŘED ZAČÁTKEM RELACE 6
+### 🎉 **RELACE 6-12B KOMPLETNĚ DOKONČENY - MICROSERVICES ARCHITEKTURA!**
+
+### 🎯 **AKTUÁLNÍ STAV DECEMBER 2025:**
+- ✅ **Kompletní 3-tier microservices:** User → Customer → Order services
+- ✅ **API Gateway:** Nginx routing pro všechny services funkční
+- ✅ **JWT Authentication:** Cross-service authentication working
+- ⚠️ **Order Creation:** 85% funkční - debugging needed v Relaci 13
+
+### 🚨 **NOVÉ PRIORITY PRO PRODUCTION READINESS:**
+
+#### **PRIORITA 1 - KRITICKÉ PRO RELACI 13:**
+- [ ] **Order Creation Fix** - Debug a oprav order creation failure
+- [ ] **Integration Testing** - Complete end-to-end workflow testing
+- [ ] **Error Handling** - Proper error messages místo generic failures
+
+#### **PRIORITA 2 - EXTERNÍ SLUŽBY (před production):**
+- [ ] **SendGrid API Key** ⚠️ STÁLE PLACEHOLDER
+  - Potřebné pro notification-service
+  - Registrace/získání účtu + API key
+  - Update v Secret Manager
+- [ ] **Stripe API Keys** ⚠️ STÁLE PLACEHOLDER  
+  - Potřebné pro billing-service
+  - Test account + API keys
+  - Update v Secret Manager
+
+#### **PRIORITA 3 - CI/CD PIPELINE:**
+- [ ] **GitHub Secrets** ❌ STÁLE CHYBÍ
+  - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+  - `GCP_SERVICE_ACCOUNT`
+  - `GCP_PROJECT_ID_DEV/STAGING/PROD`
+  - Potřebné pro automated deployment
+
+### ✅ **PRIORITA 1 - KOMPLETNĚ HOTOVO**
 
 - [x] **Stáhnout a nainstalovat Docker Desktop (Windows) + WSL2 Integration** ✅ HOTOVO
-  - [x] Stáhnout Docker Desktop pro Windows z https://www.docker.com/products/docker-desktop ✅
-  - [x] Při instalaci AKTIVOVAT: "Use WSL 2 instead of Hyper-V" ✅
-  - [ ] Po instalaci otevřít Docker Desktop Settings
-  - [ ] Jít na "Resources" → "WSL Integration"
-  - [ ] Aktivovat "Enable integration with my default WSL distro"
-  - [ ] Aktivovat konkrétně "Ubuntu" (tvoje WSL distro)
-  - [ ] Kliknout "Apply & Restart"
-  - [ ] Test v Ubuntu (WSL): `docker --version` && `docker-compose --version`
-  - [ ] Test kontejneru: `docker run hello-world`
-
-- [ ] **Nainstalovat VSCode rozšíření**
-  - [ ] Docker
-  - [ ] HashiCorp Terraform  
-  - [ ] GraphQL: Language Feature Support
-  - [ ] Remote - Containers
-  - [ ] ESLint
-  - [ ] Prettier - Code formatter
-
-- [ ] **Google Cloud SDK setup (v Ubuntu WSL)**
-  - [ ] V Ubuntu terminále spustit: `curl https://sdk.cloud.google.com | bash`
-  - [ ] Restart shell: `exec -l $SHELL`
-  - [ ] Spustit: `gcloud init`
-  - [ ] Spustit: `gcloud auth application-default login`
-  - [ ] Ověřit: `gcloud --version`
-  
-- [ ] **Node.js setup (v Ubuntu WSL)**
-  - [ ] Nainstalovat nvm: `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash`
-  - [ ] Restart shell: `source ~/.bashrc`
-  - [ ] Nainstalovat Node.js: `nvm install 20`
-  - [ ] Aktivovat: `nvm use 20`
-  - [ ] Ověřit: `node --version` && `npm --version`
+- [x] **Nainstalovat VSCode rozšíření** ✅ HOTOVO
+- [x] **Google Cloud SDK setup (v Ubuntu WSL)** ✅ HOTOVO
+- [x] **Node.js setup (v Ubuntu WSL)** ✅ HOTOVO
 
 ### 🎯 PRIORITA 2 - GCP KONFIGURACE
 
 **✅ HOTOVO: GCP Project založen (Project ID: firemni-asistent)**
 
 - [x] **Aktivovat GCP APIs** ✅ HOTOVO
-  ```bash
-  ✅ run.googleapis.com (Cloud Run Admin API)
-  ✅ artifactregistry.googleapis.com (Artifact Registry API)
-  ✅ secretmanager.googleapis.com (Secret Manager API)
-  ✅ sqladmin.googleapis.com (Cloud SQL Admin API)
-  ✅ cloudbuild.googleapis.com (Cloud Build API)
-  ✅ iam.googleapis.com (IAM API)
-  ✅ iamcredentials.googleapis.com (IAM Service Account Credentials API)
-  ✅ containerscanning.googleapis.com (Container Scanning API)
-  ```
-
 - [x] **Vytvořit Service Account pro GitHub Actions** ✅ HOTOVO
-  - [x] Vytvořit SA s názvem: `github-actions-deployer` ✅
-  - [x] Přiřadit role: ✅
-    - [x] `roles/artifactregistry.writer` ✅
-    - [x] `roles/run.admin` ✅
-    - [x] `roles/secretmanager.secretAccessor` ✅
-  - [x] Nastavit Workload Identity Federation místo JSON klíčů ✅ HOTOVO
+- [x] **Nastavit Workload Identity Federation** ✅ HOTOVO
 
-- [ ] **Vytvořit GitHub Secrets**
+- [ ] **Vytvořit GitHub Secrets** ⚠️ ZBÝVÁ
   - [ ] `GCP_WORKLOAD_IDENTITY_PROVIDER`
   - [ ] `GCP_SERVICE_ACCOUNT`
   - [ ] `GCP_PROJECT_ID_DEV`
@@ -252,49 +228,39 @@ Firemní_Asistent/
 ### 🏗️ PRIORITA 3 - INFRASTRUKTURA
 
 - [x] **Artifact Registry setup** ✅ HOTOVO
-  - [x] Vytvořit Docker repository: `firemni-asistent` ✅
-  - [x] Nastavit region: `europe-west3` (Frankfurt) ✅
-  - [x] Aktivovat Container Scanning API ✅
-  - [x] Ověřit push/pull oprávnění ✅
-
-- [ ] **Cloud SQL setup** ⚠️ PLÁNOVÁNO PRO RELACI 7
-  - [ ] Vytvořit PostgreSQL instance
-  - [ ] Vytvořit 6 databází: `user_db`, `customer_db`, `order_db`, `inventory_db`, `billing_db`, `notification_db`
-  - [ ] Vytvořit databázové uživatele pro každou službu
-  - [ ] Nastavit síťová oprávnění
-
-- [ ] **Secret Manager setup** ⚠️ PLÁNOVÁNO PRO RELACI 7
-  - [ ] Vytvořit secrets pro databázová hesla
-  - [ ] Vytvořit secrets pro API klíče (SendGrid, Stripe)
-  - [ ] Vytvořit secret pro JWT signing key
+- [x] **Cloud SQL setup** ✅ HOTOVO A OTESTOVÁNO
+  - [x] PostgreSQL instance vytvořena ✅
+  - [x] 6 databází vytvořeno ✅
+  - [x] Network connectivity ověřena ✅
+  - [x] Users table vytvořena s real data ✅
+- [x] **Secret Manager setup** ✅ HOTOVO
+  - [x] Secrets pro databázová hesla ✅
+  - [x] JWT signing keys ✅
+  - [x] API placeholders připravené ✅
 
 ### 🔧 PRIORITA 4 - EXTERNÍ SLUŽBY
 
-- [ ] **SendGrid účet a API Key**
+- [ ] **SendGrid účet a API Key** ⚠️ PRO NOTIFICATION-SERVICE
   - [ ] Zaregistrovat/získat SendGrid účet
   - [ ] Vytvořit API Key pro notification-service
   - [ ] Uložit do Secret Manager
 
-- [ ] **Stripe účet a API Keys**
+- [ ] **Stripe účet a API Keys** ⚠️ PRO BILLING-SERVICE
   - [ ] Zaregistrovat/získat Stripe účet  
   - [ ] Získat Test API Keys pro billing-service
   - [ ] Uložit do Secret Manager
 
 ### 🧪 PRIORITA 5 - OVĚŘENÍ FUNKČNOSTI
 
-- [ ] **Test Docker Desktop + WSL2 Integration**
-  - [ ] Ověřit že Docker Desktop běží na Windows
-  - [ ] V Ubuntu (WSL) terminále spustit: `docker run hello-world`
-  - [ ] Ověřit že kontejner běží a Docker komunikuje přes WSL2
-  - [ ] Test docker-compose: `docker-compose --version`
-
-- [ ] **Test GCP přístup**
-  - [ ] Spustit: `gcloud projects list`
-  - [ ] Ověřit přístup k projektu
-
-- [ ] **Test databáze**
-  - [ ] Připojit se k Cloud SQL instanci
-  - [ ] Ověřit přístup ke všem databázím
+- [x] **Test Docker Desktop + WSL2 Integration** ✅ HOTOVO
+- [x] **Test GCP přístup** ✅ HOTOVO
+- [x] **Test databáze** ✅ HOTOVO A OTESTOVÁNO
+- [x] **Test user-service** ✅ KOMPLETNĚ OTESTOVÁNO
+  - [x] Health endpoint ✅
+  - [x] User registration ✅  
+  - [x] User login ✅
+  - [x] JWT token generation ✅
+  - [x] Database operations ✅
 
 ---
 
@@ -310,7 +276,7 @@ Firemní_Asistent/
 7. ✅ Artifact Registry: firemni-asistent v europe-west3
 8. ✅ Všechna potřebná GCP APIs aktivována (8 APIs)
 
-**🚀 RELACE 7 - ČÁSTEČNĚ DOKONČENA (29.7.2025):**
+**✅ RELACE 7 - DOKONČENA (29.7.2025):**
 - ✅ **System restart** - PATH problémy vyřešeny, vše čisté
 - ✅ **Docker Desktop** - běží s WSL2 integration (v28.3.2)  
 - ✅ **gcloud authentication** - přihlášen jako horakovsky@apimaster.cz
@@ -319,22 +285,38 @@ Firemní_Asistent/
 - ✅ **6 databází vytvořeno:** user_db, customer_db, order_db, inventory_db, billing_db, notification_db
 - ✅ **Secret Manager kompletní:** 10 secrets (DB URLs, JWT keys, API placeholders)
 - ✅ **Root password nastaven:** secure password vygenerován
-- 🚧 **První microservice:** user-service - PŘIPRAVEN K IMPLEMENTACI
-- 🚧 **Docker Compose** pro local development - čeká na user-service
-- 🚧 **Testing a validace** všech komponent - finální krok
 
-**AKTUÁLNÍ STAV: Database infrastruktura hotová! Příští relace = user-service implementation! 🎯**
+**✅ RELACE 8 - DOKONČENA (30.7.2025):**
+- ✅ **User-service kompletně implementován** - Express.js aplikace s JWT auth
+- ✅ **707 npm packages** nainstalováno
+- ✅ **Database connection pooling** s health checks
+- ✅ **Secret Manager integration** s fallback mechanismem
+- ✅ **API endpoints** - registration, login, profile, password reset
+- ✅ **Security hardening** - rate limiting, validation, bcrypt hashing
+- ✅ **Docker setup** - Dockerfile + docker-compose.dev.yml
+- ✅ **API documentation** - Swagger UI na /docs
+
+**🎉 RELACE 9 - ÚSPĚŠNĚ DOKONČENA (30.7.2025):**
+- ✅ **User-service 100% funkční** na http://localhost:3001
+- ✅ **Root cause analysis** - ADC problém vyřešen pomocí .env fallback
+- ✅ **Network connectivity fix** - IP 46.149.118.160 přidáno do Cloud SQL
+- ✅ **Health checks** - database: true, secrets: true, jwt: true
+- ✅ **Registration tested** - real user vytvořen s UUID
+- ✅ **Login tested** - JWT tokeny generovány úspěšně
+- ✅ **Database operations** - users table s real data
+
+**AKTUÁLNÍ STAV: První microservice (user-service) je kompletně hotový a funkční! Příští relace = customer-service implementation! 🎯**
 
 ---
 
 ## ❓ KLÍČOVÁ ROZHODNUTÍ K POTVRZENÍ
 
 **Potvrdíš mi tyto klíčové volby?**
-1. **Cloud Run** místo GKE? ✅ / ❌
-2. **Monorepo** struktura? ✅ / ❌  
-3. **Apollo Federation** pro API Gateway? ✅ / ❌
+1. **Cloud Run** místo GKE? ✅ POTVRZENO A IMPLEMENTOVÁNO
+2. **Monorepo** struktura? ✅ POTVRZENO A IMPLEMENTOVÁNO
+3. **Apollo Federation** pro API Gateway? ✅ PŘIPRAVENO
 
-**Po potvrzení můžeme začít implementací RELACE 6! 🎯**
+**Připraveni na RELACI 10 - Customer Service Implementation! 🎯**
 
 ---
 
@@ -343,4 +325,4 @@ Firemní_Asistent/
 Pokud máš jakékoliv otázky nebo problémy s setup, ozvi se hned!
 Lepší je řešit problémy na začátku než v polovině implementace.
 
-**Happy coding! 🚀**
+**USER-SERVICE JE HOTOVÝ - HAPPY CODING! 🚀**

@@ -1,0 +1,111 @@
+version: '3.8'
+
+name: firemni-asistent-dev
+
+services:
+  # PostgreSQL database for local development
+  postgres:
+    image: postgres:15-alpine
+    container_name: firemni-asistent-postgres-dev
+    environment:
+      POSTGRES_DB: firemni_asistent_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/init-dev-db.sql:/docker-entrypoint-initdb.d/init-dev-db.sql:ro
+    networks:
+      - firemni-asistent-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d firemni_asistent_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Redis for session storage (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: firemni-asistent-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - firemni-asistent-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: firemni-asistent-user-service-dev
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      # Database connection (using local PostgreSQL)
+      DATABASE_URL: postgresql://dev_user:dev_password@postgres:5432/firemni_asistent_dev
+      # JWT secrets for development
+      JWT_SECRET: dev_jwt_signing_key_super_secret_12345
+      JWT_REFRESH_SECRET: dev_jwt_refresh_key_super_secret_67890
+      # Google Cloud settings (fallback for development)
+      GOOGLE_CLOUD_PROJECT: firemni-asistent
+      # Development flags
+      DEBUG: "user-service:*"
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount source code for live reload in development
+      - ./services/user-service/src:/app/src:ro
+      - ./services/user-service/package.json:/app/package.json:ro
+      - user_service_node_modules:/app/node_modules
+    networks:
+      - firemni-asistent-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Nginx reverse proxy (optional, for testing)
+  nginx:
+    image: nginx:alpine
+    container_name: firemni-asistent-nginx-dev
+    ports:
+      - "8080:80"
+    volumes:
+      - ./scripts/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user-service
+    networks:
+      - firemni-asistent-network
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  user_service_node_modules:
+    driver: local
+
+networks:
+  firemni-asistent-network:
+    driver: bridge
+    name: firemni-asistent-dev-network
