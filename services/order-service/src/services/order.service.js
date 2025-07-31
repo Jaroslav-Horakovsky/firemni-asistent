@@ -13,6 +13,10 @@ class OrderService {
    * @returns {Promise<Object>} Created order with items
    */
   async createOrder(orderData, createdBy) {
+    console.log('[OrderService] RELACE 15 DEBUG: Starting order creation')
+    console.log('[OrderService] Order data:', JSON.stringify(orderData, null, 2))
+    console.log('[OrderService] Created by:', createdBy)
+    
     const client = await this.db.getClient()
     
     try {
@@ -20,24 +24,28 @@ class OrderService {
       console.log('[OrderService] Creating new order for customer:', orderData.customer_id)
       
       // 1. Generate order number
+      console.log('[OrderService] RELACE 15 DEBUG: Generating order number')
       const orderNumber = await this.generateOrderNumber(client)
+      console.log('[OrderService] RELACE 15 DEBUG: Order number generated:', orderNumber)
       
       // 2. Calculate totals
+      console.log('[OrderService] RELACE 15 DEBUG: Calculating totals')
       const { subtotal, tax_amount, shipping_amount, total_amount } = this.calculateOrderTotals(orderData.items || [])
+      console.log('[OrderService] RELACE 15 DEBUG: Totals calculated:', { subtotal, tax_amount, shipping_amount, total_amount })
       
       // 3. Create order
       console.log('[OrderService] RELACE 13 FIX: Using CORRECT column names!')
       const orderResult = await client.query(`
         INSERT INTO orders (
           order_number, customer_id, status, subtotal, tax_amount, 
-          shipping_amount, total_amount, currency, 
+          shipping_amount, discount_amount, total_amount, currency, 
           shipping_address_line1, shipping_address_line2, shipping_city, 
           shipping_postal_code, shipping_country,
           billing_address_line1, billing_address_line2, billing_city,
           billing_postal_code, billing_country,
           notes, created_by
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
         ) RETURNING *
       `, [
         orderNumber,
@@ -46,6 +54,7 @@ class OrderService {
         subtotal,
         tax_amount,
         shipping_amount,
+        orderData.discount_amount || 0,
         total_amount,
         orderData.currency || 'CZK',
         orderData.shipping_address?.line1 || null,
@@ -91,7 +100,7 @@ class OrderService {
       
       // 5. Create status history entry
       await client.query(`
-        INSERT INTO order_status_history (order_id, old_status, new_status, changed_by, change_reason)
+        INSERT INTO order_status_history (order_id, previous_status, new_status, changed_by, change_reason)
         VALUES ($1, $2, $3, $4, $5)
       `, [order.id, null, 'draft', createdBy, 'Order created'])
       
@@ -102,6 +111,8 @@ class OrderService {
     } catch (error) {
       await client.query('ROLLBACK')
       console.error('[OrderService] Error creating order:', error.message)
+      console.error('[OrderService] Full error:', error)
+      console.error('[OrderService] Error stack:', error.stack)
       throw error
     } finally {
       client.release()
@@ -275,7 +286,7 @@ class OrderService {
 
       // Create status history entry
       await client.query(`
-        INSERT INTO order_status_history (order_id, old_status, new_status, changed_by, change_reason)
+        INSERT INTO order_status_history (order_id, previous_status, new_status, changed_by, change_reason)
         VALUES ($1, $2, $3, $4, $5)
       `, [orderId, oldStatus, newStatus, changedBy, reason || `Status changed to ${newStatus}`])
 

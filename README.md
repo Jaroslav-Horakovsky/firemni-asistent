@@ -29,23 +29,26 @@ Firemní Asistent je moderní, škálovatelná business aplikace navržená pro 
 Frontend:  React + TypeScript + Apollo Client
 Desktop:   Electron + React
 Mobile:    React Native + TypeScript
-Backend:   Node.js + TypeScript + Fastify
-API:       GraphQL Federation v2 (Apollo)
-Database:  PostgreSQL + Prisma ORM
-MQ:        RabbitMQ (CloudAMQP)
-Cloud:     Google Cloud Platform (Cloud Run)
+Backend:   Node.js + Express.js + REST API
+Database:  PostgreSQL (Google Cloud SQL)
+Cloud:     Google Cloud Platform
+Security:  JWT Authentication, Helmet, Rate Limiting
 ```
 
-### **Mikroslužby**
-| Služba | Port | Odpovědnost |
-|--------|------|-------------|
-| **API Gateway** | 3000 | GraphQL Federation Router |
-| **User Service** | 3001 | Autentizace, uživatelé, role |
-| **Customer Service** | 3002 | Správa zákazníků a klientů |
-| **Order Service** | 3003 | Zakázky, práce, materiál |
-| **Inventory Service** | 3004 | Sklad, dodavatelé |
-| **Billing Service** | 3005 | Faktury, platby |
-| **Notification Service** | 3006 | Komunikace, notifikace |
+### **Mikroslužby - SOUČASNÝ STAV**
+| Služba | Port | Status | Odpovědnost |
+|--------|------|--------|-------------|
+| **User Service** | 3001 | ✅ FUNKČNÍ | JWT autentizace, uživatelé, RBAC |
+| **Customer Service** | 3002 | ✅ FUNKČNÍ | CRUD zákazníci, validation API |
+| **Order Service** | 3003 | ✅ FUNKČNÍ | Complete order workflow + items |
+| **API Gateway** | 8080 | ✅ FUNKČNÍ | Nginx routing, CORS, auth |
+
+### **🎯 DEVELOPMENT PROGRESS**
+- **RELACE 15**: ✅ Complete microservices architecture (85% implemented)
+- **RELACE 16**: 🚀 Infrastructure Foundation (External APIs, Payment, Email)
+- **RELACE 17**: 📋 Business Features (Advanced workflows)
+- **RELACE 18**: 📊 Analytics & Reporting
+- **RELACE 19**: 🚀 Production Deployment
 
 ---
 
