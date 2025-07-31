@@ -137,16 +137,16 @@ class OrderController {
             shipping_address: {
               line1: order.shipping_address_line1,
               line2: order.shipping_address_line2,
-              city: order.shipping_address_city,
-              postal_code: order.shipping_address_postal_code,
-              country: order.shipping_address_country
+              city: order.shipping_city,
+              postal_code: order.shipping_postal_code,
+              country: order.shipping_country
             },
             billing_address: {
               line1: order.billing_address_line1,
               line2: order.billing_address_line2,
-              city: order.billing_address_city,
-              postal_code: order.billing_address_postal_code,
-              country: order.billing_address_country
+              city: order.billing_city,
+              postal_code: order.billing_postal_code,
+              country: order.billing_country
             },
             items: order.items?.map(item => ({
               id: item.id,

@@ -26,14 +26,15 @@ class OrderService {
       const { subtotal, tax_amount, shipping_amount, total_amount } = this.calculateOrderTotals(orderData.items || [])
       
       // 3. Create order
+      console.log('[OrderService] RELACE 13 FIX: Using CORRECT column names!')
       const orderResult = await client.query(`
         INSERT INTO orders (
           order_number, customer_id, status, subtotal, tax_amount, 
           shipping_amount, total_amount, currency, 
-          shipping_address_line1, shipping_address_line2, shipping_address_city, 
-          shipping_address_postal_code, shipping_address_country,
-          billing_address_line1, billing_address_line2, billing_address_city,
-          billing_address_postal_code, billing_address_country,
+          shipping_address_line1, shipping_address_line2, shipping_city, 
+          shipping_postal_code, shipping_country,
+          billing_address_line1, billing_address_line2, billing_city,
+          billing_postal_code, billing_country,
           notes, created_by
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20

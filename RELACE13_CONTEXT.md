@@ -43,8 +43,13 @@ curl http://localhost:8080/api/orders/
 
 #### **Secondary Goals (Nice-to-Have):**
 5. **Nginx Configuration Polish** - Fix landing page a health endpoints
-6. **Monitoring Setup** - Basic logging a health monitoring
+6. **Database Design Review** - Initial review per DATABASE_DESIGN_FINALIZATION.md
 7. **Documentation** - API documentation a deployment guide
+
+#### **🔍 NEW STRATEGIC FOCUS:**
+8. **Database Finalization Prep** - Begin systematic review of database design for production
+9. **Business Requirements Gathering** - Document všechny missing requirements před frontend
+10. **Future-Proofing Planning** - Implement flexibility features před schema freeze
 
 ### 🏗️ **TECHNICAL ARCHITECTURE STATUS:**
 
@@ -179,8 +184,126 @@ nginx config: /etc/nginx/sites-available/firemni-asistent-gateway
 
 ---
 
+## 🔥 **RELACE 13 - PROGRESS UPDATE (CURRENT SESSION)**
+
+### ✅ **DOKONČENO V TÉTO RELACI:**
+
+#### 1. **Root Cause Analysis - ÚSPĚŠNĚ IDENTIFIKOVÁNO** 🎯
+- **Problem**: Order creation API vracelo `{"success":false,"error":"Failed to create order","code":"INTERNAL_SERVER_ERROR"}`
+- **Root Cause Found**: Database schema column name mismatch!
+  - **Database schema** (database.js:183): `shipping_city`, `shipping_postal_code`, `shipping_country`
+  - **Order service** (order.service.js:33): používalo `shipping_address_city` (NESPRÁVNĚ!)
+- **Error Message**: `column "shipping_address_city" of relation "orders" does not exist`
+
+#### 2. **Service Status Verification - VŠECHNY HEALTHY** ✅
+```bash
+# Všechny services běží a zdravé:
+curl http://localhost:3001/health  # user-service: healthy ✅
+curl http://localhost:3002/health  # customer-service: healthy ✅  
+curl http://localhost:3003/health  # order-service: healthy ✅
+```
+
+#### 3. **Authentication Flow - 100% FUNKČNÍ** ✅
+- **JWT Token Generation**: `POST /auth/login` - FUNGUJE
+- **Customer Validation**: Customer ID `7d5fc01c-fdd6-4cf1-be9f-da5d573c0878` existuje
+- **Cross-service Communication**: order-service ↔ customer-service - FUNGUJE
+
+#### 4. **Database Schema Fix - IMPLEMENTOVÁNO** ✅
+- **File**: `/home/horak/Projects/Firemní_Asistent/services/order-service/src/services/order.service.js`
+- **Change**: Opraveny column names z `shipping_address_city` na `shipping_city`
+- **Controller Fix**: Také opraven `/controllers/order.controller.js` pro response mapping
+- **Status**: Změny uloženy, přidán debug log pro verificaci
+
+### ⚠️ **KRITICKÝ PROBLÉM ZJIŠTĚNÝ:**
+
+#### **Code Changes Not Taking Effect** 🚨
+- **Issue**: Navzdory správným změnám v kódu se stále vyskytuje původní chyba
+- **Evidence**: Logs stále ukazují `column "shipping_address_city" of relation "orders" does not exist`
+- **Debug Added**: Přidán log `'[OrderService] RELACE 13 FIX: Using CORRECT column names!'` pro verificaci
+- **Service Restarts**: Několikrát restartován process na portu 3003
+
+### 🔧 **NEXT SESSION IMMEDIATE ACTIONS:**
+
+#### **CRITICAL STARTUP SEQUENCE:**
+```bash
+# 1. ZABÍT VŠECHNY SERVERY (POVINNÉ NA ZAČÁTKU RELACE!)
+sudo lsof -i:3001 -i:3002 -i:3003
+kill -9 [ALL_PIDS_FROM_ABOVE]
+
+# 2. SPUSTIT SERVERY V POŘADÍ:
+cd /home/horak/Projects/Firemní_Asistent/services/user-service && node src/app.js &
+cd /home/horak/Projects/Firemní_Asistent/services/customer-service && node src/app.js &  
+cd /home/horak/Projects/Firemní_Asistent/services/order-service && node src/app.js &
+
+# 3. OVĚŘIT HEALTH:
+curl http://localhost:3001/health
+curl http://localhost:3002/health
+curl http://localhost:3003/health
+```
+
+#### **DEBUGGING STRATEGY FOR NEXT SESSION:**
+1. **Verify Code Changes Loaded**: Čekat na debug message `'RELACE 13 FIX: Using CORRECT column names!'` v logs
+2. **If Still Old Error**: Možná je problém s node_modules cache nebo jiným issues
+3. **Alternative Approach**: Přepsat celý INSERT query znovu s explicitní verificací
+
+### 📊 **TECHNICAL DETAILS PRO NEXT SESSION:**
+
+#### **Working JWT Token Pattern:**
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"testuser@example.com","password":"Zx9#K$m2pL8@nQ4vR"}' \
+  | jq -r '.data.accessToken')
+```
+
+#### **Test Order Creation Command:**
+```bash
+curl -X POST http://localhost:3003/orders \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id":"7d5fc01c-fdd6-4cf1-be9f-da5d573c0878",
+    "items":[{
+      "product_name":"RELACE 13 SUCCESS TEST",
+      "quantity":1,
+      "unit_price":100.00
+    }]
+  }'
+```
+
+#### **Expected Success Response:**
+```json
+{
+  "success": true,
+  "message": "Order created successfully", 
+  "data": {
+    "order": {
+      "id": "uuid",
+      "order_number": "ORD-2025-001",
+      "customer_id": "7d5fc01c-fdd6-4cf1-be9f-da5d573c0878",
+      "status": "draft",
+      "total_amount": 100.00,
+      "items": [...]
+    }
+  }
+}
+```
+
+### 🎯 **SUCCESS CRITERIA PRO NEXT SESSION:**
+- [ ] Debug message `'RELACE 13 FIX'` se objeví v logs (potvrzení načtení změn)
+- [ ] Order creation úspěšně projde bez database error
+- [ ] Full workflow test: Login → Customer → Order → Success
+- [ ] API Gateway integration test (pokud čas dovolí)
+
+### 🔍 **KEY FILES TO MONITOR:**
+- `/home/horak/Projects/Firemní_Asistent/services/order-service/src/services/order.service.js` (řádek 29: debug log)
+- `/home/horak/Projects/Firemní_Asistent/services/order-service/order-service.log` (real-time logs)
+- Process PIDs na portech 3001, 3002, 3003
+
+---
+
 **RELACE 12B COMPLETION STATUS:** 
 - ✅ Architecture Complete
 - ✅ Services Running  
 - ✅ API Gateway Functional
-- ⚠️ Order Creation Needs Fix (RELACE 13 Priority #1)
+- 🔧 Order Creation: Root Cause Found, Fix Implemented, Testing Pending (RELACE 13 Priority #1)
