@@ -327,7 +327,7 @@ jobs:
     
     services:
       zap:
-        image: owasp/zap2docker-stable:${{ env.ZAP_VERSION }}
+        image: owasp/zap2docker-stable:2.14.0
         ports:
           - 8080:8080
         options: >-
