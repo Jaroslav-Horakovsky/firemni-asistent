@@ -167,7 +167,7 @@ jobs:
           cache: 'npm'
       
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
       
       - name: Initialize CodeQL
         if: matrix.scanner == 'codeql'
@@ -267,7 +267,7 @@ jobs:
           cache: 'npm'
       
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
       
       - name: Create Security Directory
         run: |
@@ -479,7 +479,7 @@ jobs:
       - name: Install Security Analysis Dependencies
         run: |
           # Install required packages for security analysis
-          npm install --save-dev \
+          npm ci --save-dev \
             sarif \
             @microsoft/sarif-multitool \
             node-html-parser \

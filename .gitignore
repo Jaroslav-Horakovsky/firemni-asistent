@@ -174,8 +174,7 @@ deployment.yaml.tmp
 .local
 .dev
 
-# Package-lock files (using workspaces)
-package-lock.json
+# Package-lock files (using workspaces) - keep root package-lock.json for CI
 yarn.lock
 
 # Prisma
