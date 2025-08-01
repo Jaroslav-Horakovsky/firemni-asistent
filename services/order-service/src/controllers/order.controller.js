@@ -267,7 +267,8 @@ class OrderController {
         req.params.id,
         value.status,
         req.user.userId,
-        value.reason
+        value.reason,
+        value.context || {}
       )
 
       if (!updatedOrder) {
@@ -432,6 +433,109 @@ class OrderController {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve order statistics',
+        code: 'INTERNAL_SERVER_ERROR'
+      })
+    }
+  }
+
+  /**
+   * Get order status history
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async getOrderHistory(req, res) {
+    try {
+      console.log('[OrderController] Get order history request:', req.params.id)
+
+      // Validate order ID
+      const { error } = OrderModel.validateId(req.params.id)
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid order ID',
+          code: 'VALIDATION_ERROR'
+        })
+      }
+
+      const history = await orderService.getOrderHistory(req.params.id)
+
+      if (!history) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found',
+          code: 'ORDER_NOT_FOUND'
+        })
+      }
+
+      res.json({
+        success: true,
+        data: {
+          order_id: req.params.id,
+          history: history.map(entry => ({
+            id: entry.id,
+            previous_status: entry.previous_status,
+            new_status: entry.new_status,
+            changed_by: entry.changed_by,
+            change_reason: entry.change_reason,
+            notes: entry.notes,
+            created_at: entry.created_at
+          }))
+        }
+      })
+    } catch (error) {
+      console.error('[OrderController] Get order history error:', error.message)
+      
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve order history',
+        code: 'INTERNAL_SERVER_ERROR'
+      })
+    }
+  }
+
+  /**
+   * Get next valid statuses for order
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async getOrderNextStatuses(req, res) {
+    try {
+      console.log('[OrderController] Get next statuses request:', req.params.id)
+
+      // Validate order ID
+      const { error } = OrderModel.validateId(req.params.id)
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid order ID',
+          code: 'VALIDATION_ERROR'
+        })
+      }
+
+      const nextStatuses = await orderService.getNextValidStatuses(req.params.id)
+
+      if (!nextStatuses) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found',
+          code: 'ORDER_NOT_FOUND'
+        })
+      }
+
+      res.json({
+        success: true,
+        data: {
+          order_id: req.params.id,
+          current_status: nextStatuses.currentStatus,
+          next_statuses: nextStatuses.nextStatuses
+        }
+      })
+    } catch (error) {
+      console.error('[OrderController] Get next statuses error:', error.message)
+      
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve next statuses',
         code: 'INTERNAL_SERVER_ERROR'
       })
     }

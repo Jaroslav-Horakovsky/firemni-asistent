@@ -522,6 +522,141 @@ router.delete('/:id', authenticateToken, orderController.deleteOrder)
 
 /**
  * @swagger
+ * /orders/{id}/history:
+ *   get:
+ *     summary: Get order status history
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Order ID
+ *     responses:
+ *       200:
+ *         description: Order history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order_id:
+ *                       type: string
+ *                       format: uuid
+ *                     history:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           previous_status:
+ *                             type: string
+ *                           new_status:
+ *                             type: string
+ *                           changed_by:
+ *                             type: string
+ *                           change_reason:
+ *                             type: string
+ *                           notes:
+ *                             type: string
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *       400:
+ *         description: Invalid order ID
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:id/history', authenticateToken, orderController.getOrderHistory)
+
+/**
+ * @swagger
+ * /orders/{id}/next-statuses:
+ *   get:
+ *     summary: Get next valid statuses for order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Order ID
+ *     responses:
+ *       200:
+ *         description: Next statuses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order_id:
+ *                       type: string
+ *                       format: uuid
+ *                     current_status:
+ *                       type: string
+ *                       example: confirmed
+ *                     next_statuses:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           status:
+ *                             type: string
+ *                           label:
+ *                             type: string
+ *                           color:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           rules:
+ *                             type: object
+ *                             properties:
+ *                               requiresPayment:
+ *                                 type: boolean
+ *                               requiresInventory:
+ *                                 type: boolean
+ *                               requiresShipping:
+ *                                 type: boolean
+ *                               description:
+ *                                 type: string
+ *       400:
+ *         description: Invalid order ID
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:id/next-statuses', authenticateToken, orderController.getOrderNextStatuses)
+
+/**
+ * @swagger
  * /orders/customer/{customerId}:
  *   get:
  *     summary: Get orders for a specific customer

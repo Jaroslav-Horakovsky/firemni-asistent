@@ -304,7 +304,14 @@ class Order {
           'any.only': 'Status must be one of: draft, pending, confirmed, processing, shipped, delivered, cancelled, refunded',
           'any.required': 'Status is required'
         }),
-      reason: Joi.string().max(500).optional().allow(null, '')
+      reason: Joi.string().max(500).optional().allow(null, ''),
+      context: Joi.object({
+        paymentConfirmed: Joi.boolean().optional(),
+        inventoryReserved: Joi.boolean().optional(),
+        shippingArranged: Joi.boolean().optional(),
+        trackingNumber: Joi.string().optional(),
+        webhookSource: Joi.string().optional()
+      }).optional()
     })
 
     return schema.validate(data, { abortEarly: false })

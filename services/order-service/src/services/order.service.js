@@ -1,5 +1,7 @@
 const { database } = require('../utils/database')
 const { OrderModel } = require('../models/order.model')
+const { StatusManager } = require('./statusManager')
+const axios = require('axios')
 
 class OrderService {
   constructor() {
@@ -250,22 +252,23 @@ class OrderService {
   }
 
   /**
-   * Update order status
+   * Update order status with validation
    * @param {string} orderId - Order ID
    * @param {string} newStatus - New status
    * @param {string} changedBy - User ID who changed the status
    * @param {string} reason - Reason for status change
+   * @param {Object} context - Additional context for validation
    * @returns {Promise<Object|null>} Updated order or null if not found
    */
-  async updateOrderStatus(orderId, newStatus, changedBy, reason = null) {
+  async updateOrderStatus(orderId, newStatus, changedBy, reason = null, context = {}) {
     const client = await this.db.getClient()
 
     try {
       await client.query('BEGIN')
       console.log('[OrderService] Updating order status:', orderId, '->', newStatus)
 
-      // Get current order status
-      const currentResult = await client.query('SELECT id, status FROM orders WHERE id = $1', [orderId])
+      // Get current order
+      const currentResult = await client.query('SELECT * FROM orders WHERE id = $1', [orderId])
       if (currentResult.rows.length === 0) {
         await client.query('ROLLBACK')
         return null
@@ -273,6 +276,20 @@ class OrderService {
 
       const currentOrder = currentResult.rows[0]
       const oldStatus = currentOrder.status
+
+      // Validate status transition
+      const transitionValidation = StatusManager.validateTransition(oldStatus, newStatus)
+      if (!transitionValidation.isValid) {
+        await client.query('ROLLBACK')
+        throw new Error(`Invalid status transition: ${transitionValidation.error}`)
+      }
+
+      // Validate business rules
+      const businessValidation = StatusManager.validateBusinessRules(currentOrder, newStatus, context)
+      if (!businessValidation.isValid) {
+        await client.query('ROLLBACK')
+        throw new Error(`Business rule validation failed: ${businessValidation.errors.join(', ')}`)
+      }
 
       // Update order status
       const updateResult = await client.query(`
@@ -284,15 +301,27 @@ class OrderService {
 
       const updatedOrder = updateResult.rows[0]
 
+      // Generate reason if not provided
+      const changeReason = reason || StatusManager.generateAutomatedReason(oldStatus, newStatus, context)
+
       // Create status history entry
       await client.query(`
         INSERT INTO order_status_history (order_id, previous_status, new_status, changed_by, change_reason)
         VALUES ($1, $2, $3, $4, $5)
-      `, [orderId, oldStatus, newStatus, changedBy, reason || `Status changed to ${newStatus}`])
+      `, [orderId, oldStatus, newStatus, changedBy, changeReason])
 
       await client.query('COMMIT')
 
       console.log('[OrderService] Order status updated successfully:', orderId)
+      
+      // Phase 4: Send email notification for status change (after successful commit)
+      try {
+        await this.sendStatusChangeNotification(updatedOrder, oldStatus, newStatus, changeReason, context)
+      } catch (emailError) {
+        console.error('[OrderService] Email notification failed (non-blocking):', emailError.message)
+        // Don't fail the status update if email fails - it's already committed
+      }
+
       return updatedOrder
     } catch (error) {
       await client.query('ROLLBACK')
@@ -420,6 +449,149 @@ class OrderService {
       }
     } catch (error) {
       console.error('[OrderService] Error fetching order statistics:', error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Get order status history
+   * @param {string} orderId - Order ID
+   * @returns {Promise<Array|null>} Status history or null if order not found
+   */
+  async getOrderHistory(orderId) {
+    try {
+      console.log('[OrderService] Fetching order history:', orderId)
+
+      // First check if order exists
+      const orderCheck = await this.db.query('SELECT id FROM orders WHERE id = $1', [orderId])
+      if (orderCheck.rows.length === 0) {
+        console.log('[OrderService] Order not found for history:', orderId)
+        return null
+      }
+
+      // Get status history
+      const historyQuery = `
+        SELECT 
+          id, order_id, previous_status, new_status, 
+          changed_by, change_reason, notes, created_at
+        FROM order_status_history 
+        WHERE order_id = $1 
+        ORDER BY created_at ASC
+      `
+
+      const result = await this.db.query(historyQuery, [orderId])
+      console.log(`[OrderService] Found ${result.rows.length} history entries for order:`, orderId)
+      
+      return result.rows
+    } catch (error) {
+      console.error('[OrderService] Error fetching order history:', error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Get next valid statuses for an order
+   * @param {string} orderId - Order ID
+   * @returns {Promise<Object|null>} Next statuses info or null if order not found
+   */
+  async getNextValidStatuses(orderId) {
+    try {
+      console.log('[OrderService] Getting next valid statuses for order:', orderId)
+
+      // Get current order status
+      const orderResult = await this.db.query('SELECT id, status FROM orders WHERE id = $1', [orderId])
+      if (orderResult.rows.length === 0) {
+        console.log('[OrderService] Order not found for status check:', orderId)
+        return null
+      }
+
+      const currentOrder = orderResult.rows[0]
+      const currentStatus = currentOrder.status
+
+      // Get next possible statuses
+      const nextStatuses = StatusManager.getNextStatuses(currentStatus)
+
+      console.log(`[OrderService] Found ${nextStatuses.length} next statuses for order ${orderId} (current: ${currentStatus})`)
+      
+      return {
+        currentStatus,
+        nextStatuses
+      }
+    } catch (error) {
+      console.error('[OrderService] Error getting next valid statuses:', error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Send status change notification email
+   * @param {Object} order - Updated order object
+   * @param {string} oldStatus - Previous status
+   * @param {string} newStatus - New status
+   * @param {string} changeReason - Reason for change
+   * @param {Object} context - Additional context
+   * @returns {Promise<void>}
+   */
+  async sendStatusChangeNotification(order, oldStatus, newStatus, changeReason, context = {}) {
+    try {
+      console.log(`[OrderService] Sending status change notification: ${order.order_number} ${oldStatus} → ${newStatus}`)
+
+      // Only send notifications for customer-visible status changes
+      const statusMetadata = StatusManager.getStatusMetadata(newStatus)
+      if (!statusMetadata.customerVisible) {
+        console.log('[OrderService] Skipping notification - status not customer visible:', newStatus)
+        return
+      }
+
+      // Get customer information via Customer Service API
+      const CUSTOMER_SERVICE_URL = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:3002'
+      
+      const customerResponse = await axios.get(`${CUSTOMER_SERVICE_URL}/customers/${order.customer_id}`, {
+        timeout: 5000,
+        headers: { 'User-Agent': 'OrderService/1.0.0' }
+      })
+
+      if (!customerResponse.data.success || !customerResponse.data.data) {
+        console.error('[OrderService] Customer not found for email notification:', order.customer_id)
+        return
+      }
+
+      const customer = customerResponse.data.data
+      const customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
+
+      // Prepare notification data
+      const notificationData = {
+        order_id: order.id,
+        order_number: order.order_number,
+        old_status: oldStatus,
+        new_status: newStatus,
+        customer_email: customer.email,
+        customer_name: customerName || null,
+        reason: changeReason,
+        automated: context.automated || false,
+        webhook_triggered: context.webhookSource === 'stripe' || false
+      }
+
+      // Call API Gateway notification endpoint
+      const API_GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:3000'
+      
+      const response = await axios.post(`${API_GATEWAY_URL}/api/notifications/status-change`, notificationData, {
+        timeout: 5000, // 5 second timeout
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'OrderService/1.0.0'
+        }
+      })
+
+      if (response.data.success) {
+        console.log(`[OrderService] Status change email sent successfully for order ${order.order_number}. MessageID: ${response.data.data.message_id}`)
+      } else {
+        console.error('[OrderService] Email notification API returned failure:', response.data)
+      }
+
+    } catch (error) {
+      console.error('[OrderService] Failed to send status change notification:', error.message)
+      // Re-throw to be caught by the calling code
       throw error
     }
   }

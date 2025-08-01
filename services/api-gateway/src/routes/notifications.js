@@ -250,6 +250,268 @@ Tým Firemní Asistent
   }
 });
 
+// Status change notification endpoint - for StatusManager hooks
+router.post('/status-change', async (req, res) => {
+  try {
+    console.log('[Status Change Notification] Request received:', req.body);
+
+    const statusNotificationSchema = Joi.object({
+      order_id: Joi.string().uuid().required(),
+      order_number: Joi.string().required(),
+      old_status: Joi.string().required(),
+      new_status: Joi.string().required(),
+      customer_email: Joi.string().email().required(),
+      customer_name: Joi.string().optional(),
+      reason: Joi.string().optional(),
+      automated: Joi.boolean().default(false),
+      webhook_triggered: Joi.boolean().default(false)
+    });
+
+    const { error, value } = statusNotificationSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status change notification data',
+        errors: error.details.map(d => d.message)
+      });
+    }
+
+    const { order_id, order_number, old_status, new_status, customer_email, customer_name, reason, automated, webhook_triggered } = value;
+
+    // Status change email templates
+    const getStatusChangeEmail = (status, orderData) => {
+      const templates = {
+        confirmed: {
+          subject: `Objednávka ${orderData.order_number} byla potvrzena - Firemní Asistent`,
+          text: `Vážený zákazníku${orderData.customer_name ? ` ${orderData.customer_name}` : ''},\n\nVaše objednávka ${orderData.order_number} byla úspěšně potvrzena${orderData.webhook_triggered ? ' a platba byla přijata' : ''}.\n\nObjednávka bude nyní zpracována a připravena k odeslání.\n\nS pozdravem,\nTým Firemní Asistent`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #28a745;">✅ Objednávka potvrzena</h2>
+              <p>Vážený zákazníku${orderData.customer_name ? ` <strong>${orderData.customer_name}</strong>` : ''},</p>
+              <p>Vaše objednávka <strong>${orderData.order_number}</strong> byla úspěšně potvrzena${orderData.webhook_triggered ? ' a platba byla přijata' : ''}.</p>
+              <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
+                <p style="margin: 0;"><strong>Status:</strong> Potvrzena</p>
+                <p style="margin: 5px 0 0 0;"><strong>Objednávka:</strong> ${orderData.order_number}</p>
+              </div>
+              <p>Objednávka bude nyní zpracována a připravena k odeslání.</p>
+              <hr style="margin: 30px 0; border: 1px solid #eee;">
+              <p style="color: #666; font-size: 0.9em;">S pozdravem,<br><strong>Tým Firemní Asistent</strong></p>
+            </div>`
+        },
+        processing: {
+          subject: `Objednávka ${orderData.order_number} se zpracovává - Firemní Asistent`,
+          text: `Vážený zákazníku${orderData.customer_name ? ` ${orderData.customer_name}` : ''},\n\nVaše objednávka ${orderData.order_number} se nyní zpracovává.\n\n${orderData.reason ? `Poznámka: ${orderData.reason}\n\n` : ''}Budeme Vás informovat o dalším postupu.\n\nS pozdravem,\nTým Firemní Asistent`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #17a2b8;">🔄 Objednávka se zpracovává</h2>
+              <p>Vážený zákazníku${orderData.customer_name ? ` <strong>${orderData.customer_name}</strong>` : ''},</p>
+              <p>Vaše objednávka <strong>${orderData.order_number}</strong> se nyní zpracovává.</p>
+              ${orderData.reason ? `<div style="background-color: #d1ecf1; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #17a2b8;"><p style="margin: 0;"><strong>Poznámka:</strong> ${orderData.reason}</p></div>` : ''}
+              <p>Budeme Vás informovat o dalším postupu.</p>
+              <hr style="margin: 30px 0; border: 1px solid #eee;">
+              <p style="color: #666; font-size: 0.9em;">S pozdravem,<br><strong>Tým Firemní Asistent</strong></p>
+            </div>`
+        },
+        shipped: {
+          subject: `Objednávka ${orderData.order_number} byla odeslána - Firemní Asistent`,
+          text: `Vážený zákazníku${orderData.customer_name ? ` ${orderData.customer_name}` : ''},\n\nVaše objednávka ${orderData.order_number} byla odeslána!\n\n${orderData.reason ? `Poznámka: ${orderData.reason}\n\n` : ''}Sledování zásilky bude brzy k dispozici.\n\nS pozdravem,\nTým Firemní Asistent`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #fd7e14;">📦 Objednávka odeslána</h2>
+              <p>Vážený zákazníku${orderData.customer_name ? ` <strong>${orderData.customer_name}</strong>` : ''},</p>
+              <p>Vaše objednávka <strong>${orderData.order_number}</strong> byla odeslána!</p>
+              ${orderData.reason ? `<div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #fd7e14;"><p style="margin: 0;"><strong>Poznámka:</strong> ${orderData.reason}</p></div>` : ''}
+              <p>Sledování zásilky bude brzy k dispozici.</p>
+              <hr style="margin: 30px 0; border: 1px solid #eee;">
+              <p style="color: #666; font-size: 0.9em;">S pozdravem,<br><strong>Tým Firemní Asistent</strong></p>
+            </div>`
+        },
+        delivered: {
+          subject: `Objednávka ${orderData.order_number} byla doručena - Firemní Asistent`,
+          text: `Vážený zákazníku${orderData.customer_name ? ` ${orderData.customer_name}` : ''},\n\nVaše objednávka ${orderData.order_number} byla úspěšně doručena!\n\nDěkujeme za důvěru a těšíme se na další spolupráci.\n\nS pozdravem,\nTým Firemní Asistent`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #28a745;">🎉 Objednávka doručena</h2>
+              <p>Vážený zákazníku${orderData.customer_name ? ` <strong>${orderData.customer_name}</strong>` : ''},</p>
+              <p>Vaše objednávka <strong>${orderData.order_number}</strong> byla úspěšně doručena!</p>
+              <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
+                <p style="margin: 0;">✅ <strong>Status:</strong> Doručeno</p>
+              </div>
+              <p>Děkujeme za důvěru a těšíme se na další spolupráci.</p>
+              <hr style="margin: 30px 0; border: 1px solid #eee;">
+              <p style="color: #666; font-size: 0.9em;">S pozdravem,<br><strong>Tým Firemní Asistent</strong></p>
+            </div>`
+        },
+        cancelled: {
+          subject: `Objednávka ${orderData.order_number} byla zrušena - Firemní Asistent`,
+          text: `Vážený zákazníku${orderData.customer_name ? ` ${orderData.customer_name}` : ''},\n\nVaše objednávka ${orderData.order_number} byla zrušena.\n\n${orderData.reason ? `Důvod: ${orderData.reason}\n\n` : ''}V případě dotazů nás neváhejte kontaktovat.\n\nS pozdravem,\nTým Firemní Asistent`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #dc3545;">❌ Objednávka zrušena</h2>
+              <p>Vážený zákazníku${orderData.customer_name ? ` <strong>${orderData.customer_name}</strong>` : ''},</p>
+              <p>Vaše objednávka <strong>${orderData.order_number}</strong> byla zrušena.</p>
+              ${orderData.reason ? `<div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;"><p style="margin: 0;"><strong>Důvod:</strong> ${orderData.reason}</p></div>` : ''}
+              <p>V případě dotazů nás neváhejte kontaktovat.</p>
+              <hr style="margin: 30px 0; border: 1px solid #eee;">
+              <p style="color: #666; font-size: 0.9em;">S pozdravem,<br><strong>Tým Firemní Asistent</strong></p>
+            </div>`
+        }
+      };
+
+      return templates[status] || {
+        subject: `Aktualizace objednávky ${orderData.order_number} - Firemní Asistent`,
+        text: `Vážený zákazníku${orderData.customer_name ? ` ${orderData.customer_name}` : ''},\n\nStav Vaší objednávky ${orderData.order_number} byl změněn z "${orderData.old_status}" na "${orderData.new_status}".\n\n${orderData.reason ? `Poznámka: ${orderData.reason}\n\n` : ''}S pozdravem,\nTým Firemní Asistent`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #6c757d;">📋 Aktualizace objednávky</h2>
+            <p>Vážený zákazníku${orderData.customer_name ? ` <strong>${orderData.customer_name}</strong>` : ''},</p>
+            <p>Stav Vaší objednávky <strong>${orderData.order_number}</strong> byl aktualizován.</p>
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p style="margin: 0;"><strong>Předchozí stav:</strong> ${orderData.old_status}</p>
+              <p style="margin: 5px 0 0 0;"><strong>Nový stav:</strong> ${orderData.new_status}</p>
+            </div>
+            ${orderData.reason ? `<div style="background-color: #e2e3e5; padding: 15px; border-radius: 5px; margin: 20px 0;"><p style="margin: 0;"><strong>Poznámka:</strong> ${orderData.reason}</p></div>` : ''}
+            <hr style="margin: 30px 0; border: 1px solid #eee;">
+            <p style="color: #666; font-size: 0.9em;">S pozdravem,<br><strong>Tým Firemní Asistent</strong></p>
+          </div>`
+      };
+    };
+
+    const emailTemplate = getStatusChangeEmail(new_status, value);
+
+    // Send status change email
+    const msg = {
+      to: customer_email,
+      from: 'noreply@firemnipomocnik.com',
+      subject: emailTemplate.subject,
+      text: emailTemplate.text,
+      html: emailTemplate.html,
+      trackingSettings: {
+        clickTracking: { enable: true },
+        openTracking: { enable: true }
+      },
+      customArgs: {
+        order_id: order_id,
+        order_number: order_number,
+        template_type: 'status_change',
+        old_status: old_status,
+        new_status: new_status,
+        automated: automated.toString(),
+        webhook_triggered: webhook_triggered.toString(),
+        sent_by: 'status-manager',
+        sent_at: new Date().toISOString()
+      }
+    };
+
+    const result = await sgMail.send(msg);
+    console.log(`[Status Change Email] Sent for order ${order_number}: ${old_status} → ${new_status}. MessageID: ${result[0].headers['x-message-id']}`);
+
+    res.json({
+      success: true,
+      message: 'Status change notification sent successfully',
+      data: {
+        message_id: result[0].headers['x-message-id'],
+        order_id: order_id,
+        order_number: order_number,
+        status_change: `${old_status} → ${new_status}`,
+        customer_email: customer_email,
+        automated: automated,
+        webhook_triggered: webhook_triggered,
+        sent_at: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('[Status Change Email Error]', error);
+    
+    if (error.response) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status change email delivery failed',
+        error: error.response.body.errors || error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send status change notification',
+      error: error.message
+    });
+  }
+});
+
+// Test endpoint for development
+router.post('/test', async (req, res) => {
+  try {
+    console.log('[Email Test] Test notification request:', req.body);
+
+    const testSchema = Joi.object({
+      type: Joi.string().valid('order_confirmed', 'status_change', 'payment_success').default('status_change'),
+      orderId: Joi.string().uuid().optional().default('050fc089-353f-4911-86a6-61ac3c92396a'),
+      email: Joi.string().email().optional().default('testuser@example.com')
+    });
+
+    const { error, value } = testSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid test data',
+        errors: error.details.map(d => d.message)
+      });
+    }
+
+    const { type, orderId, email } = value;
+
+    // Test status change notification
+    if (type === 'status_change' || type === 'order_confirmed') {
+      const testNotification = {
+        order_id: orderId,
+        order_number: 'ORD-2025-004',
+        old_status: 'pending',
+        new_status: type === 'order_confirmed' ? 'confirmed' : 'processing',
+        customer_email: email,
+        customer_name: 'Test User',
+        reason: 'Test email notification system',
+        automated: false,
+        webhook_triggered: type === 'order_confirmed'
+      };
+
+      // Call status-change endpoint internally
+      const statusChangeResponse = await new Promise((resolve, reject) => {
+        const req = { body: testNotification };
+        const res = {
+          json: (data) => resolve(data),
+          status: (code) => ({ json: (data) => reject({ status: code, ...data }) })
+        };
+
+        // Call the status-change handler directly
+        router.stack.find(layer => layer.route && layer.route.path === '/status-change')
+          .route.stack[0].handle(req, res);
+      });
+
+      return res.json({
+        success: true,
+        message: `Test ${type} email sent successfully`,
+        data: statusChangeResponse.data
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Test endpoint working',
+      data: { type, orderId, email }
+    });
+
+  } catch (error) {
+    console.error('[Email Test Error]', error);
+    res.status(500).json({
+      success: false,
+      message: 'Test email failed',
+      error: error.message
+    });
+  }
+});
+
 // Get email status (placeholder - SendGrid doesn't provide simple status API)
 router.get('/:message_id/status', authenticateToken, (req, res) => {
   const { message_id } = req.params;

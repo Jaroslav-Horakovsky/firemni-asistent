@@ -8,6 +8,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const paymentRoutes = require('./routes/payments');
 const notificationRoutes = require('./routes/notifications');
+const analyticsRoutes = require('./routes/analytics');
+const webhookRoutes = require('./routes/webhooks');
 const { authenticateToken, errorHandler, logger } = require('./middleware');
 
 const app = express();
@@ -27,6 +29,9 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use(limiter);
+
+// Webhook routes (BEFORE express.json middleware for raw body parsing)
+app.use('/api/webhooks', webhookRoutes);
 
 // Request parsing
 app.use(express.json({ limit: '10mb' }));
@@ -57,7 +62,9 @@ app.get('/docs', (req, res) => {
       customers: '/api/customers/* -> customer-service:3002',
       orders: '/api/orders/* -> order-service:3003',
       payments: '/api/payments/* -> payment processing',
-      notifications: '/api/notifications/* -> email notifications'
+      notifications: '/api/notifications/* -> email notifications',
+      analytics: '/api/analytics/* -> business intelligence & reporting',
+      webhooks: '/api/webhooks/* -> stripe webhook processing'
     },
     health: '/health',
     documentation: '/docs'
@@ -72,6 +79,9 @@ app.use('/api/payments', paymentRoutes);
 
 // New notification routes (handled locally with SendGrid)
 app.use('/api/notifications', notificationRoutes);
+
+// New analytics routes (RELACE 17 - Business Intelligence)
+app.use('/api/analytics', analyticsRoutes);
 
 // Proxy routes to existing services
 const createServiceProxy = (target, pathRewrite = {}) => {

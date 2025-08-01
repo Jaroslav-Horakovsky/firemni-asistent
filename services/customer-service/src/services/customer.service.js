@@ -370,6 +370,43 @@ class CustomerService {
       throw error
     }
   }
+
+  /**
+   * Get customer statistics
+   * @returns {Promise<Object>} Customer statistics
+   */
+  async getCustomerStats() {
+    try {
+      console.log('[CustomerService] Fetching customer statistics')
+
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total_customers,
+          COUNT(*) FILTER (WHERE is_active = true) as active_customers,
+          COUNT(*) FILTER (WHERE is_active = false) as inactive_customers,
+          COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as customers_30d,
+          COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as customers_7d,
+          COALESCE(AVG(credit_limit), 0) as average_credit_limit
+        FROM customers
+      `
+
+      const result = await this.db.query(statsQuery)
+      const stats = result.rows[0]
+
+      console.log('[CustomerService] Customer statistics retrieved')
+      return {
+        totalCustomers: parseInt(stats.total_customers),
+        activeCustomers: parseInt(stats.active_customers),
+        inactiveCustomers: parseInt(stats.inactive_customers),
+        customers30d: parseInt(stats.customers_30d),
+        customers7d: parseInt(stats.customers_7d),
+        averageCreditLimit: parseFloat(stats.average_credit_limit)
+      }
+    } catch (error) {
+      console.error('[CustomerService] Error fetching customer statistics:', error.message)
+      throw error
+    }
+  }
 }
 
 // Create singleton instance

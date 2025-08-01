@@ -313,6 +313,34 @@ class CustomerController {
       })
     }
   }
+
+  /**
+   * Get customer statistics
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async getCustomerStats(req, res) {
+    try {
+      console.log('[CustomerController] Get customer stats request')
+
+      const stats = await customerService.getCustomerStats()
+
+      res.json({
+        success: true,
+        data: {
+          statistics: stats
+        }
+      })
+    } catch (error) {
+      console.error('[CustomerController] Get customer stats error:', error.message)
+      
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve customer statistics',
+        code: 'INTERNAL_SERVER_ERROR'
+      })
+    }
+  }
 }
 
 // Create singleton instance
