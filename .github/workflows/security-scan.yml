@@ -167,7 +167,7 @@ jobs:
           cache: 'npm'
       
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
       
       - name: Initialize CodeQL
         if: matrix.scanner == 'codeql'
@@ -267,7 +267,7 @@ jobs:
           cache: 'npm'
       
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
       
       - name: Create Security Directory
         run: |

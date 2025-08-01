@@ -143,7 +143,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           
       - name: Install Root Dependencies
-        run: npm ci
+        run: npm install
         
       - name: Install Validation Dependencies
         run: |
@@ -238,7 +238,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm ci
+          npm install
           cd tests/integration && npm ci
           
       - name: Download All Validation Results
@@ -309,7 +309,7 @@ jobs:
           
       - name: Install Dependencies
         run: |
-          npm ci
+          npm install
           cd tests/integration && npm ci
           
       - name: Download All Results
