@@ -161,6 +161,45 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # Employee Service
+  employee-service:
+    build:
+      context: ./services/employee-service
+      dockerfile: Dockerfile
+    container_name: firemni-asistent-employee-service-dev
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      # Database connection (using local PostgreSQL)
+      DATABASE_URL: postgresql://dev_user:dev_password@postgres:5432/firemni_asistent_dev
+      # JWT secrets for development
+      JWT_SECRET: dev_jwt_signing_key_super_secret_12345
+      JWT_REFRESH_SECRET: dev_jwt_refresh_key_super_secret_67890
+      # Google Cloud settings (fallback for development)
+      GOOGLE_CLOUD_PROJECT: firemni-asistent
+      # Development flags
+      DEBUG: "employee-service:*"
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount source code for live reload in development
+      - ./services/employee-service/src:/app/src:ro
+      - ./services/employee-service/package.json:/app/package.json:ro
+      - employee_service_node_modules:/app/node_modules
+    networks:
+      - firemni-asistent-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3004/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
   # API Gateway
   api-gateway:
     build:
@@ -179,6 +218,7 @@ services:
       USER_SERVICE_URL: http://user-service:3001
       CUSTOMER_SERVICE_URL: http://customer-service:3002
       ORDER_SERVICE_URL: http://order-service:3003
+      EMPLOYEE_SERVICE_URL: http://employee-service:3004
       # Google Cloud settings (fallback for development)
       GOOGLE_CLOUD_PROJECT: firemni-asistent
       # Development flags
@@ -188,6 +228,7 @@ services:
       - user-service
       - customer-service
       - order-service
+      - employee-service
     volumes:
       # Mount source code for live reload in development
       - ./services/api-gateway/src:/app/src:ro
@@ -227,6 +268,8 @@ volumes:
   customer_service_node_modules:
     driver: local
   order_service_node_modules:
+    driver: local
+  employee_service_node_modules:
     driver: local
   api_gateway_node_modules:
     driver: local

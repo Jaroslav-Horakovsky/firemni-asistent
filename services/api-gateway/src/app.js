@@ -116,6 +116,10 @@ app.use('/api/orders', authenticateToken, createServiceProxy(process.env.ORDER_S
   '^/api/orders': ''
 }));
 
+app.use('/api/employees', authenticateToken, createServiceProxy(process.env.EMPLOYEE_SERVICE_URL, {
+  '^/api/employees': ''
+}));
+
 // Error handling
 app.use(errorHandler);
 
