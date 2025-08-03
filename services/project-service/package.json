@@ -1,0 +1,46 @@
+{
+  "name": "@firemni-asistent/project-service",
+  "version": "1.0.0",
+  "description": "Project management microservice for Firemní Asistent",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "echo 'Linting not configured yet'",
+    "build": "echo 'Build ready for production deployment'"
+  },
+  "keywords": [
+    "microservice",
+    "projects",
+    "tasks",
+    "team-management",
+    "express",
+    "postgresql",
+    "project-management"
+  ],
+  "author": "Firemní Asistent Team",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.0",
+    "axios": "^1.11.0",
+    "dotenv": "^16.0.0",
+    "express": "^4.18.0",
+    "express-rate-limit": "^6.7.0",
+    "express-slow-down": "^1.6.0",
+    "helmet": "^6.1.0",
+    "joi": "^17.9.0",
+    "jsonwebtoken": "^9.0.0",
+    "pg": "^8.11.0",
+    "swagger-jsdoc": "^6.2.0",
+    "swagger-ui-express": "^4.6.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "nodemon": "^3.1.10",
+    "supertest": "^6.3.0"
+  }
+}
