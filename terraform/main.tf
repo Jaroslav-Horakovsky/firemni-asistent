@@ -46,63 +46,105 @@ locals {
     team        = "engineering"
   }
   
-  # Service definitions
+  # Service definitions - Current active services
   services = {
-    user = {
-      name = "user-service"
-      port = 8080
+    user-service = {
+      image = "gcr.io/${var.project_id}/user-service:latest"
+      port = 3001
       cpu = "1000m"
       memory = "512Mi"
       min_instances = var.environment == "production" ? 2 : 1
       max_instances = var.environment == "production" ? 10 : 3
+      dependencies = []
+      environment_variables = {
+        SERVICE_NAME = "user-service"
+        PORT = "3001"
+        NODE_ENV = var.environment
+      }
     }
-    customer = {
-      name = "customer-service"
-      port = 8080
+    customer-service = {
+      image = "gcr.io/${var.project_id}/customer-service:latest"
+      port = 3002
       cpu = "1000m"
       memory = "512Mi"
       min_instances = var.environment == "production" ? 2 : 1
       max_instances = var.environment == "production" ? 8 : 3
+      dependencies = []
+      environment_variables = {
+        SERVICE_NAME = "customer-service"
+        PORT = "3002"
+        NODE_ENV = var.environment
+      }
     }
-    order = {
-      name = "order-service"
-      port = 8080
+    order-service = {
+      image = "gcr.io/${var.project_id}/order-service:latest"
+      port = 3003
       cpu = "2000m"
       memory = "1Gi"
       min_instances = var.environment == "production" ? 3 : 1
       max_instances = var.environment == "production" ? 15 : 5
+      dependencies = ["user-service", "customer-service"]
+      environment_variables = {
+        SERVICE_NAME = "order-service"
+        PORT = "3003"
+        NODE_ENV = var.environment
+      }
     }
-    inventory = {
-      name = "inventory-service"
-      port = 8080
+    inventory-service = {
+      image = "gcr.io/${var.project_id}/inventory-service:latest"
+      port = 3004
       cpu = "1000m"
       memory = "512Mi"
       min_instances = var.environment == "production" ? 2 : 1
       max_instances = var.environment == "production" ? 10 : 3
+      dependencies = []
+      environment_variables = {
+        SERVICE_NAME = "inventory-service"
+        PORT = "3004"
+        NODE_ENV = var.environment
+      }
     }
-    billing = {
-      name = "billing-service"
-      port = 8080
+    billing-service = {
+      image = "gcr.io/${var.project_id}/billing-service:latest"
+      port = 3005
       cpu = "1000m"
       memory = "512Mi"
       min_instances = var.environment == "production" ? 2 : 1
       max_instances = var.environment == "production" ? 8 : 3
+      dependencies = ["order-service"]
+      environment_variables = {
+        SERVICE_NAME = "billing-service"
+        PORT = "3005"
+        NODE_ENV = var.environment
+      }
     }
-    notification = {
-      name = "notification-service"
-      port = 8080
+    notification-service = {
+      image = "gcr.io/${var.project_id}/notification-service:latest"
+      port = 3006
       cpu = "500m"
       memory = "256Mi"
       min_instances = var.environment == "production" ? 1 : 0
       max_instances = var.environment == "production" ? 5 : 2
+      dependencies = []
+      environment_variables = {
+        SERVICE_NAME = "notification-service"
+        PORT = "3006"
+        NODE_ENV = var.environment
+      }
     }
-    gateway = {
-      name = "api-gateway"
-      port = 8080
+    api-gateway = {
+      image = "gcr.io/${var.project_id}/api-gateway:latest"
+      port = 3000
       cpu = "2000m"
       memory = "1Gi"
       min_instances = var.environment == "production" ? 3 : 1
       max_instances = var.environment == "production" ? 20 : 5
+      dependencies = ["user-service", "customer-service", "order-service", "inventory-service", "billing-service", "notification-service"]
+      environment_variables = {
+        SERVICE_NAME = "api-gateway"
+        PORT = "3000"
+        NODE_ENV = var.environment
+      }
     }
   }
 }
@@ -189,21 +231,22 @@ module "registry" {
 module "microservices" {
   source = "./modules/cloud-run"
   
-  for_each = local.services
-  
   project_id   = var.project_id
   region       = var.region
   environment  = local.environment
   labels       = local.common_labels
   
-  service_name = each.value.name
-  service_config = each.value
+  services = local.services
   
-  vpc_connector_id = module.networking.vpc_connector_id
-  registry_url     = module.registry.registry_url
+  vpc_connector_name = module.networking.vpc_connector_name
   
-  database_secrets = module.secrets.database_secret_ids
-  app_secrets      = module.secrets.app_secret_ids
+  secret_manager_secrets = module.secrets.secret_manager_secrets
+  database_config = {
+    host = module.databases.postgres_private_ip
+    port = "5432"
+    database_name = "firemni_asistent"
+    connection_secrets = module.secrets.database_secret_ids
+  }
   
   depends_on = [
     google_project_service.apis,
@@ -225,8 +268,8 @@ module "load_balancer" {
   
   services = {
     for name, config in local.services : name => {
-      name = config.name
-      url  = module.microservices[name].service_url
+      name = name
+      url  = module.microservices.service_urls[name]
     }
   }
   
@@ -240,6 +283,7 @@ module "monitoring" {
   source = "./modules/monitoring"
   
   project_id   = var.project_id
+  region       = var.region
   environment  = local.environment
   labels       = local.common_labels
   

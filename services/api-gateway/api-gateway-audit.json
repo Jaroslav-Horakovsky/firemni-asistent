@@ -1,0 +1,112 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@sendgrid/client": {
+      "name": "@sendgrid/client",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "axios"
+      ],
+      "effects": [
+        "@sendgrid/mail"
+      ],
+      "range": "7.0.0 - 7.7.0",
+      "nodes": [
+        "node_modules/@sendgrid/client"
+      ],
+      "fixAvailable": {
+        "name": "@sendgrid/mail",
+        "version": "8.1.5",
+        "isSemVerMajor": true
+      }
+    },
+    "@sendgrid/mail": {
+      "name": "@sendgrid/mail",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "@sendgrid/client"
+      ],
+      "effects": [],
+      "range": "7.0.0 - 7.7.0",
+      "nodes": [
+        "node_modules/@sendgrid/mail"
+      ],
+      "fixAvailable": {
+        "name": "@sendgrid/mail",
+        "version": "8.1.5",
+        "isSemVerMajor": true
+      }
+    },
+    "axios": {
+      "name": "axios",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1097679,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "Axios Cross-Site Request Forgery Vulnerability",
+          "url": "https://github.com/advisories/GHSA-wf5p-g6vw-rhxx",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-352"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N"
+          },
+          "range": ">=0.8.1 <0.28.0"
+        },
+        {
+          "source": 1103617,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "axios Requests Vulnerable To Possible SSRF and Credential Leakage via Absolute URL",
+          "url": "https://github.com/advisories/GHSA-jr5f-v2jv-69x6",
+          "severity": "high",
+          "cwe": [
+            "CWE-918"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<0.30.0"
+        }
+      ],
+      "effects": [
+        "@sendgrid/client"
+      ],
+      "range": "<=0.29.0",
+      "nodes": [
+        "node_modules/axios"
+      ],
+      "fixAvailable": {
+        "name": "@sendgrid/mail",
+        "version": "8.1.5",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 3,
+      "critical": 0,
+      "total": 3
+    },
+    "dependencies": {
+      "prod": 415,
+      "dev": 503,
+      "optional": 3,
+      "peer": 9,
+      "peerOptional": 0,
+      "total": 920
+    }
+  }
+}

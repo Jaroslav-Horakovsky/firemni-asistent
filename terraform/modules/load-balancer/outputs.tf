@@ -4,20 +4,17 @@
 # IP addresses and basic configuration
 output "load_balancer_ip" {
   description = "Load balancer IPv4 address"
-  value = var.reserved_ip_config.create_ipv4_address ? 
-    google_compute_global_address.lb_ipv4[0].address : null
+  value = var.reserved_ip_config.create_ipv4_address ? google_compute_global_address.lb_ipv4[0].address : null
 }
 
 output "load_balancer_ipv6" {
   description = "Load balancer IPv6 address" 
-  value = var.reserved_ip_config.create_ipv6_address ? 
-    google_compute_global_address.lb_ipv6[0].address : null
+  value = var.reserved_ip_config.create_ipv6_address ? google_compute_global_address.lb_ipv6[0].address : null
 }
 
 output "load_balancer_ip_name" {
   description = "Load balancer IPv4 address resource name"
-  value = var.reserved_ip_config.create_ipv4_address ? 
-    google_compute_global_address.lb_ipv4[0].name : null
+  value = var.reserved_ip_config.create_ipv4_address ? google_compute_global_address.lb_ipv4[0].name : null
 }
 
 # SSL certificate information
@@ -284,8 +281,7 @@ output "integration_endpoints" {
   description = "Integration endpoints for external services and DNS configuration"
   value = {
     # Main load balancer endpoint
-    load_balancer_endpoint = var.reserved_ip_config.create_ipv4_address ? 
-      google_compute_global_address.lb_ipv4[0].address : null
+    load_balancer_endpoint = var.reserved_ip_config.create_ipv4_address ? google_compute_global_address.lb_ipv4[0].address : null
     
     # Service-specific health check endpoints
     health_check_endpoints = {
@@ -297,8 +293,7 @@ output "integration_endpoints" {
     ssl_domains = local.ssl_domains
     
     # IPv6 endpoint (if enabled)
-    ipv6_endpoint = var.reserved_ip_config.create_ipv6_address ? 
-      google_compute_global_address.lb_ipv6[0].address : null
+    ipv6_endpoint = var.reserved_ip_config.create_ipv6_address ? google_compute_global_address.lb_ipv6[0].address : null
     
     # Protocol and port configuration
     protocols = {

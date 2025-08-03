@@ -1,24 +1,33 @@
-# Firemní Asistent - Comprehensive Business Management System
+# Firemní Asistent - Enterprise Business Management Platform
 
-> **Inteligentní řešení pro správu zakázek, evidence práce a automatickou fakturaci**
+> **All-in-one řešení pro řízení celého businessu - od zaměstnanců po projekty a fakturaci**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![GraphQL](https://img.shields.io/badge/GraphQL-Federation%20v2-e10098.svg)](https://www.apollographql.com/docs/federation/)
+[![Express.js](https://img.shields.io/badge/Express.js-REST%20API-green.svg)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Google%20Cloud-blue.svg)](https://cloud.google.com/sql)
+[![Security](https://img.shields.io/badge/Security-0%20Vulnerabilities-green.svg)](./docs/SECURITY_UPGRADE_COMPLETE_REPORT.md)
+[![System Status](https://img.shields.io/badge/System-4%20Services%20Operational-brightgreen.svg)](#-současný-stav-systému)
 
-## 🎯 **Přehled Projektu**
+## 🎯 **Vize Projektu**
 
-Firemní Asistent je moderní, škálovatelná business aplikace navržená pro komplexní správu firemních procesů. Systém automatizuje evidenci práce, správu materiálu, výpočet nákladů a generování faktur s důrazem na efektivitu a přesnost.
+Kompletní **enterprise business management platforma** pro české firmy. Není to jen e-shop nebo CRM - je to all-in-one řešení pro řízení celého businessu od zaměstnanců přes projekty až po fakturaci.
+
+### **Complete Business Flow**
+```
+Zákazník → Objednávka → Management schválí → Vytvoří projekt
+→ Přiřadí tým (zaměstnanci + externisté) → Pracují na úkolech
+→ Zapisují hodiny + materiál + fotky → Management sleduje pokrok
+→ Fakturuje zákazníka → Zákazník platí → Projekt uzavřen
+```
 
 ### **Klíčové Vlastnosti**
-- 📋 **Komplexní správa zakázek** - Od vytvoření po fakturaci
-- 👥 **Multi-role systém** - Majitel, Zaměstnanci, OSVČ
-- 📊 **Real-time analýzy** - Náklady, ziskovost, výkonnost
-- 🤖 **Automatická fakturace** - Event-driven generování faktur
-- 📱 **Cross-platform klienti** - Desktop (Electron) + Mobile (React Native)
-- 🔐 **Enterprise security** - JWT, RBAC, audit logging
-- 🚀 **Cloud-native** - Mikroslužby na Google Cloud Platform
+- 👥 **Employee Management** - Zaměstnanci, externisté, skillsets, sazby
+- 📋 **Project Management** - Úkoly, týmy, time tracking, foto dokumentace  
+- 📊 **Complete Workflow** - Od objednávky přes práci po fakturaci
+- 🔐 **Enterprise Security** - JWT, mikroslužby, audit logging
+- 🚀 **Cloud-native** - PostgreSQL na Google Cloud Platform
+- ⚡ **WSL Development** - Optimalizované pro Windows WSL prostředí
 
 ---
 
@@ -35,20 +44,37 @@ Cloud:     Google Cloud Platform
 Security:  JWT Authentication, Helmet, Rate Limiting
 ```
 
-### **Mikroslužby - SOUČASNÝ STAV**
-| Služba | Port | Status | Odpovědnost |
-|--------|------|--------|-------------|
-| **User Service** | 3001 | ✅ FUNKČNÍ | JWT autentizace, uživatelé, RBAC |
-| **Customer Service** | 3002 | ✅ FUNKČNÍ | CRUD zákazníci, validation API |
-| **Order Service** | 3003 | ✅ FUNKČNÍ | Complete order workflow + items |
-| **API Gateway** | 8080 | ✅ FUNKČNÍ | Nginx routing, CORS, auth |
+## 🏢 **Současný Stav Systému**
 
-### **🎯 DEVELOPMENT PROGRESS**
-- **RELACE 15**: ✅ Complete microservices architecture (85% implemented)
-- **RELACE 16**: 🚀 Infrastructure Foundation (External APIs, Payment, Email)
-- **RELACE 17**: 📋 Business Features (Advanced workflows)
-- **RELACE 18**: 📊 Analytics & Reporting
-- **RELACE 19**: 🚀 Production Deployment
+### **Mikroslužby - OPERAČNÍ (4/4)**
+| Služba | Port | Status | Databáze | Odpovědnost |
+|--------|------|--------|----------|-------------|
+| **API Gateway** | 3000 | ✅ HEALTHY | N/A | HTTP routing, CORS, auth middleware |
+| **User Service** | 3001 | ✅ HEALTHY | user_db | JWT autentizace, uživatelé, RBAC |
+| **Customer Service** | 3002 | ✅ HEALTHY | customer_db | CRUD zákazníci, validation API |
+| **Order Service** | 3003 | ⚠️ DEGRADED* | order_db | Complete order workflow + items |
+
+*Order Service = degraded je správné chování (secrets check fail v development)
+
+### **🎯 STRATEGICKÝ ROADMAP (Updated RELACE 27)**
+**PRIORITY ZMĚNA: Employee-first approach**
+
+#### **Fáze 1: Employee & Project Management** 🚧 **CURRENT**
+- **RELACE 27**: ✅ Employee Service - zaměstnanci, externisté, skillsets
+- **RELACE 28**: 📋 Project Service - projekty, přiřazení týmů, task management  
+- **RELACE 29**: ⏱️ Timesheet Service - zápis hodin, materiálu, fotodokumentace
+
+#### **Fáze 2: Inventory & Analytics** 🔮 **FUTURE**
+- **RELACE 30**: 📦 Inventory Service - skladové zásoby, produktové katalogy
+- **RELACE 31**: 📊 Advanced Analytics - reporting, business intelligence
+- **RELACE 32**: 🤖 AI Integration - smart recommendations, automation
+
+### **🏗️ COMPLETED FOUNDATION (RELACE 1-26)**
+- ✅ **Mikroslužby Architecture** - 4 služby s HTTP komunikací
+- ✅ **Database Design** - PostgreSQL per service na Google Cloud  
+- ✅ **Security Upgrade** - 0 vulnerabilities (SendGrid v8, Secret Manager v6)
+- ✅ **WSL Development** - Stabilní prostředí s recovery postupy
+- ✅ **Business Core** - User → Customer → Order workflow kompletní
 
 ---
 
@@ -63,6 +89,8 @@ Security:  JWT Authentication, Helmet, Rate Limiting
 | [**SECURITY.md**](./SECURITY.md) | Bezpečnostní opatření, autentizace, audit |
 | [**SCHEMA.md**](./SCHEMA.md) | Databázové schéma a struktura |
 | [**Vize_AI_Asistent.md**](./Vize_AI_Asistent.md) | Dlouhodobá vize s AI integrací |
+| [**SECURITY_UPGRADE_COMPLETE_REPORT.md**](./SECURITY_UPGRADE_COMPLETE_REPORT.md) | Kompletní bezpečnostní upgrade (6→0 vulnerabilities) |
+| [**PRODUCTION_DEPLOYMENT_CHECKLIST.md**](./PRODUCTION_DEPLOYMENT_CHECKLIST.md) | Produkční deployment checklist a postupy |
 
 ---
 
@@ -85,23 +113,20 @@ cd firemni-asistent
 
 ### **2. Setup Environment**
 ```bash
-# Copy environment templates
-cp .env.example .env.local
-
 # Install dependencies for all services
-npm run install:all
+npm install
 
-# Setup local databases
-docker-compose up -d postgres rabbitmq redis
+# Start Docker development environment  
+docker-compose -f docker-compose.dev.yml up -d
 ```
 
-### **3. Database Setup**
+### **3. WSL Environment (Windows)**
 ```bash
-# Run migrations for all services
-npm run db:migrate
+# Ensure WSL Docker integration is working
+docker version
+systemctl --user start docker-desktop
 
-# Seed development data
-npm run db:seed
+# If WSL issues occur, see docs/archive/troubleshooting/WSL_RESTART_RECOVERY_SOLUTION.md
 ```
 
 ### **4. Start Development**
@@ -110,16 +135,25 @@ npm run db:seed
 npm run dev
 
 # Or start individual services
-npm run dev:user-service
-npm run dev:order-service
-npm run dev:gateway
+npm run dev:user-service     # Port 3001
+npm run dev:customer-service # Port 3002  
+npm run dev:order-service    # Port 3003
+npm run dev:api-gateway      # Port 3000
 ```
 
-### **5. Access Applications**
-- **API Gateway**: http://localhost:3000/graphql
-- **GraphQL Playground**: http://localhost:3000
-- **Database Admin**: http://localhost:8080 (Adminer)
-- **RabbitMQ Management**: http://localhost:15672
+### **5. Verify Setup**
+```bash
+# Health check all services
+curl http://localhost:3000/health  # API Gateway
+curl http://localhost:3001/health  # User Service
+curl http://localhost:3002/health  # Customer Service
+curl http://localhost:3003/health  # Order Service (expect degraded = OK)
+```
+
+### **6. Access Applications**
+- **API Gateway**: http://localhost:3000/health
+- **Service Endpoints**: http://localhost:3000/api/{service}/health
+- **Database**: Direct Google Cloud connections via DATABASE_URL
 
 ---
 
@@ -303,6 +337,8 @@ npm run test:alerts
 - ✅ **Rate Limiting**: Redis-based rate limiting
 - ✅ **Audit Logging**: All security events logged
 - ✅ **GDPR Compliance**: Data retention a privacy controls
+- ✅ **Package Security**: 0 critical/high vulnerabilities (SendGrid v8, Secret Manager v6)
+- ✅ **Vulnerability Management**: Systematic security upgrade methodology
 
 ### **Security Scans**
 ```bash
@@ -377,17 +413,19 @@ npm run perf:memory
 - [x] Authentication & authorization
 - [x] Desktop application
 
-### **Phase 2: Advanced Features** 🚧
-- [ ] Mobile application
-- [ ] Advanced reporting
-- [ ] Integration APIs
-- [ ] File management
+### **Phase 2: AI-Ready Foundation + Intelligence** 🚧 **PRIORITA**
+- [x] Security upgrade (0 vulnerabilities)
+- [ ] **AI Orchestration Service** - Centrální AI integrace
+- [ ] **Smart Inventory Service** - AI-powered forecasting
+- [ ] **Intelligent Billing** - AI-assisted invoice generation
+- [ ] **Predictive Analytics** - Cost prediction & insights
+- [ ] Advanced reporting with AI queries
 
-### **Phase 3: AI Intelligence** 🔮
-- [ ] Intelligent cost prediction
+### **Phase 3: Advanced AI Features** 🔮
 - [ ] Voice-controlled assistant
 - [ ] Automated task scheduling
-- [ ] Predictive analytics
+- [ ] Natural language queries
+- [ ] Advanced predictive maintenance
 
 ---
 

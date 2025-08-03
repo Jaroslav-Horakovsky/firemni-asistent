@@ -51,6 +51,24 @@ cd /home/horak/Projects/Firemní_Asistent/services/[service-name] && npm start &
 
 ## 🚀 **MOŽNÉ RELACE 18 SMĚRY**
 
+### **🚨 KRITICKÁ PRIORITA: SECURITY VULNERABILITIES (UŽIVATEL CHCE ŘEŠIT HNED!)**
+**MUSÍME ŘEŠIT JAKO PRVNÍ VĚC V RELACE 18 - NE AŽ PŘED PRODUKCÍ:**
+
+**PROČ HNED:**
+- axios: přímo používaný v `/services/order-service/src/services/order.service.js` pro HTTP calls
+- protobufjs: Google Cloud Secret Manager - bez toho nefungují database credentials
+- SendGrid: celý email notification systém v `/services/api-gateway/src/routes/notifications.js`
+- form-data: API komunikace mezi services
+
+**UPGRADE PLÁN (2-3 hodiny):**
+- axios/SendGrid upgrade + testing (PRIORITA #1 - breaking change možný)
+- protobufjs/Secret Manager upgrade + testing (PRIORITA #2 - breaking change možný) 
+- research alternativ pro form-data/tough-cookie (PRIORITA #3 - no fix available)
+- final testing všech integrations (PRIORITA #4)
+
+**DŮSLEDEK:** Bez security upgrade = riziko pro celý systém při dalším vývoji
+**DŮVOD:** 13 vulnerabilities (5 critical, 6 high, 2 moderate) - PŘÍMO ovlivňují náš kód
+
 ### **OPTION A: Production Deployment**
 Pokud chce uživatel production deployment:
 - Docker containerization všech služeb

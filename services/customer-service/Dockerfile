@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Node.js user-service
+# Multi-stage Dockerfile for Node.js customer-service
 # Stage 1: Build stage
 FROM node:18-alpine AS builder
 
@@ -41,16 +41,16 @@ RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=3002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (res) => { \
+  CMD node -e "require('http').get('http://localhost:3002/health', (res) => { \
     process.exit(res.statusCode === 200 ? 0 : 1); \
   }).on('error', () => process.exit(1));"
 
 # Expose port
-EXPOSE 3001
+EXPOSE 3002
 
 # Switch to non-root user
 USER nodejs
@@ -64,8 +64,8 @@ CMD ["node", "src/app.js"]
 # Labels for metadata
 LABEL maintainer="Firemní Asistent Team <support@firemni-asistent.com>"
 LABEL version="1.0.0"
-LABEL description="User management and authentication microservice"
+LABEL description="Customer management microservice"
 LABEL org.opencontainers.image.source="https://github.com/horakovsky/firemni-asistent"
-LABEL org.opencontainers.image.title="user-service"
-LABEL org.opencontainers.image.description="User management and authentication microservice"
+LABEL org.opencontainers.image.title="customer-service"
+LABEL org.opencontainers.image.description="Customer management microservice"
 LABEL org.opencontainers.image.version="1.0.0"

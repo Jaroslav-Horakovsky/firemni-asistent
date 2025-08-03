@@ -27,7 +27,7 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # Redis for session storage (optional)
+  # Redis for session storage
   redis:
     image: redis:7-alpine
     container_name: firemni-asistent-redis-dev
@@ -83,6 +83,126 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # Customer Service
+  customer-service:
+    build:
+      context: ./services/customer-service
+      dockerfile: Dockerfile
+    container_name: firemni-asistent-customer-service-dev
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      # Database connection (using local PostgreSQL)
+      DATABASE_URL: postgresql://dev_user:dev_password@postgres:5432/firemni_asistent_dev
+      # JWT secrets for development
+      JWT_SECRET: dev_jwt_signing_key_super_secret_12345
+      JWT_REFRESH_SECRET: dev_jwt_refresh_key_super_secret_67890
+      # Google Cloud settings (fallback for development)
+      GOOGLE_CLOUD_PROJECT: firemni-asistent
+      # Development flags
+      DEBUG: "customer-service:*"
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount source code for live reload in development
+      - ./services/customer-service/src:/app/src:ro
+      - ./services/customer-service/package.json:/app/package.json:ro
+      - customer_service_node_modules:/app/node_modules
+    networks:
+      - firemni-asistent-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Order Service
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: firemni-asistent-order-service-dev
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      # Database connection (using local PostgreSQL)
+      DATABASE_URL: postgresql://dev_user:dev_password@postgres:5432/firemni_asistent_dev
+      # JWT secrets for development
+      JWT_SECRET: dev_jwt_signing_key_super_secret_12345
+      JWT_REFRESH_SECRET: dev_jwt_refresh_key_super_secret_67890
+      # Google Cloud settings (fallback for development)
+      GOOGLE_CLOUD_PROJECT: firemni-asistent
+      # Development flags
+      DEBUG: "order-service:*"
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount source code for live reload in development
+      - ./services/order-service/src:/app/src:ro
+      - ./services/order-service/package.json:/app/package.json:ro
+      - order_service_node_modules:/app/node_modules
+    networks:
+      - firemni-asistent-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: firemni-asistent-api-gateway-dev
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      # JWT secrets for development
+      JWT_SECRET: dev_jwt_signing_key_super_secret_12345
+      JWT_REFRESH_SECRET: dev_jwt_refresh_key_super_secret_67890
+      # Service URLs
+      USER_SERVICE_URL: http://user-service:3001
+      CUSTOMER_SERVICE_URL: http://customer-service:3002
+      ORDER_SERVICE_URL: http://order-service:3003
+      # Google Cloud settings (fallback for development)
+      GOOGLE_CLOUD_PROJECT: firemni-asistent
+      # Development flags
+      DEBUG: "api-gateway:*"
+      LOG_LEVEL: debug
+    depends_on:
+      - user-service
+      - customer-service
+      - order-service
+    volumes:
+      # Mount source code for live reload in development
+      - ./services/api-gateway/src:/app/src:ro
+      - ./services/api-gateway/package.json:/app/package.json:ro
+      - api_gateway_node_modules:/app/node_modules
+    networks:
+      - firemni-asistent-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
   # Nginx reverse proxy (optional, for testing)
   nginx:
     image: nginx:alpine
@@ -92,7 +212,7 @@ services:
     volumes:
       - ./scripts/nginx.dev.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - user-service
+      - api-gateway
     networks:
       - firemni-asistent-network
     restart: unless-stopped
@@ -103,6 +223,12 @@ volumes:
   redis_dev_data:
     driver: local
   user_service_node_modules:
+    driver: local
+  customer_service_node_modules:
+    driver: local
+  order_service_node_modules:
+    driver: local
+  api_gateway_node_modules:
     driver: local
 
 networks:

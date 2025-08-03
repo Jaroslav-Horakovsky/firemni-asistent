@@ -2,10 +2,24 @@ const { SecretManagerServiceClient } = require('@google-cloud/secret-manager')
 
 class SecretsManager {
   constructor() {
-    this.client = new SecretManagerServiceClient()
+    this.client = null // Lazy initialization
     this.projectId = process.env.GOOGLE_CLOUD_PROJECT || 'firemni-asistent'
     this.cache = new Map()
     this.cacheExpiry = 5 * 60 * 1000 // 5 minutes cache
+  }
+
+  /**
+   * Get Secret Manager client with lazy initialization
+   * @returns {SecretManagerServiceClient} Initialized client
+   */
+  getClient() {
+    if (!this.client) {
+      // Only initialize when actually needed and not in development mode
+      if (process.env.NODE_ENV !== 'development') {
+        this.client = new SecretManagerServiceClient()
+      }
+    }
+    return this.client
   }
 
   /**
@@ -24,11 +38,30 @@ class SecretsManager {
         return cached.value
       }
 
-      // Fetch from Secret Manager
+      // For development, try environment variables first
+      if (process.env.NODE_ENV === 'development') {
+        const envValue = process.env[secretName]
+        if (envValue) {
+          console.log(`[SecretsManager] Using environment variable for ${secretName} (development mode)`)
+          // Cache the result
+          this.cache.set(cacheKey, {
+            value: envValue,
+            timestamp: Date.now()
+          })
+          return envValue
+        }
+      }
+
+      // Fetch from Secret Manager (only in production)
+      const client = this.getClient()
+      if (!client) {
+        throw new Error('Secret Manager not available in development mode')
+      }
+      
       const name = `projects/${this.projectId}/secrets/${secretName}/versions/latest`
       console.log(`[SecretsManager] Fetching secret: ${name}`)
       
-      const [version] = await this.client.accessSecretVersion({ name })
+      const [version] = await client.accessSecretVersion({ name })
       const payload = version.payload.data.toString()
 
       // Cache the result
@@ -85,6 +118,16 @@ class SecretsManager {
    * @returns {Promise<string>} Database connection URL
    */
   async getDatabaseUrl(serviceName) {
+    // In development, ALWAYS use DATABASE_URL environment variable (bypass Secret Manager completely)
+    if (process.env.NODE_ENV === 'development') {
+      if (process.env.DATABASE_URL) {
+        console.log(`[SecretsManager] Using DATABASE_URL environment variable for ${serviceName} service (development mode)`)
+        return process.env.DATABASE_URL
+      } else {
+        throw new Error('DATABASE_URL environment variable is required in development mode')
+      }
+    }
+    
     const secretName = `DB_${serviceName.toUpperCase()}_SERVICE_URL`
     return await this.getSecret(secretName)
   }
@@ -94,6 +137,16 @@ class SecretsManager {
    * @returns {Promise<string>} JWT signing key
    */
   async getJwtSigningKey() {
+    // In development, ALWAYS use JWT_SECRET environment variable (bypass Secret Manager completely)
+    if (process.env.NODE_ENV === 'development') {
+      if (process.env.JWT_SECRET) {
+        console.log('[SecretsManager] Using JWT_SECRET environment variable (development mode)')
+        return process.env.JWT_SECRET
+      } else {
+        throw new Error('JWT_SECRET environment variable is required in development mode')
+      }
+    }
+    
     return await this.getSecret('JWT_SIGNING_KEY')
   }
 
@@ -102,6 +155,16 @@ class SecretsManager {
    * @returns {Promise<string>} JWT refresh key
    */
   async getJwtRefreshKey() {
+    // In development, ALWAYS use JWT_REFRESH_SECRET environment variable (bypass Secret Manager completely)
+    if (process.env.NODE_ENV === 'development') {
+      if (process.env.JWT_REFRESH_SECRET) {
+        console.log('[SecretsManager] Using JWT_REFRESH_SECRET environment variable (development mode)')
+        return process.env.JWT_REFRESH_SECRET
+      } else {
+        throw new Error('JWT_REFRESH_SECRET environment variable is required in development mode')
+      }
+    }
+    
     return await this.getSecret('JWT_REFRESH_KEY')
   }
 

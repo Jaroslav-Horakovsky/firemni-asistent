@@ -26,13 +26,24 @@
 
 ## Mikroslužbová Architektura
 
-### Service Breakdown - CURRENT STATUS
+### Service Breakdown - STRATEGIC EMPLOYEE-FIRST APPROACH
 
-#### 1. User Service (`user-service`) ✅ FULLY IMPLEMENTED
+#### 1. API Gateway (`api-gateway`) ✅ OPERATIONAL
+**Odpovědnost**: Centrální HTTP routing a middleware
+- **Port**: 3000
+- **Database**: N/A
+- **Status**: ✅ HEALTHY
+- **Key Operations** (✅ WORKING):
+  - HTTP routing to all services
+  - CORS middleware
+  - Authentication middleware
+  - Health check aggregation
+
+#### 2. User Service (`user-service`) ✅ OPERATIONAL
 **Odpovědnost**: Správa uživatelů, autentizace, autorizace
 - **Port**: 3001
 - **Database**: `user_db` (Google Cloud PostgreSQL)
-- **API Type**: REST endpoints
+- **Status**: ✅ HEALTHY
 - **Key Operations** (✅ WORKING):
   - POST /auth/register - Registrace uživatelů
   - POST /auth/login - Přihlášení s JWT tokens
@@ -40,51 +51,83 @@
   - PUT /users/:id - Update uživatelů
   - GET /health - Health check endpoint
 
-#### 2. Customer Service (`customer-service`) ✅ FULLY IMPLEMENTED
+#### 3. Customer Service (`customer-service`) ✅ OPERATIONAL
 **Odpovědnost**: Správa zákazníků a klientů
 - **Port**: 3002
 - **Database**: `customer_db` (Google Cloud PostgreSQL)
-- **API Type**: REST endpoints
+- **Status**: ✅ HEALTHY
 - **Key Operations** (✅ WORKING):
   - GET /customers - Seznam zákazníků
   - POST /customers - Vytvoření zákazníka
   - GET /customers/:id - Detail zákazníka
   - PUT /customers/:id - Update zákazníka
   - DELETE /customers/:id - Smazání zákazníka
-  - GET /health - Health check endpoint
 
-#### 3. Order Service (`order-service`) ✅ FULLY IMPLEMENTED
-**Odpovědnost**: Správa zakázek, jádro business logiky
+#### 4. Order Service (`order-service`) ✅ OPERATIONAL
+**Odpovědnost**: Správa zakázek, business workflow
 - **Port**: 3003
 - **Database**: `order_db` (Google Cloud PostgreSQL)
-- **API Type**: REST endpoints
+- **Status**: ⚠️ DEGRADED (expected - secrets check fail)
 - **Key Operations** (✅ WORKING):
   - GET /orders - Seznam objednávek
   - POST /orders - Vytvoření objednávky (s items)
   - GET /orders/:id - Detail objednávky
   - PUT /orders/:id - Update objednávky
-  - GET /health - Health check endpoint
+  - Order workflow management
 
-#### 4. Inventory Service (`inventory-service`) 🚧 PLANNED
-**Odpovědnost**: Správa skladu a materiálu
-- **Port**: 3004 (budoucí)
-- **Database**: `inventory_db` (připravená)
-- **API Type**: REST endpoints (budoucí)
-- **Key Operations** (🚧 PLANNED):
-  - Skladová evidence
-  - Automatické objednávky (low stock alerts)
-  - Správa dodavatelů
+---
 
-#### 5. Billing Service (`billing-service`) 🚧 PLANNED
-**Odpovědnost**: Fakturace a platby
-- **Port**: 3005 (budoucí)
-- **Database**: `billing_db` (připravená)
-- **API Type**: REST endpoints (budoucí)
-- **Key Operations** (🚧 PLANNED):
-  - Automatické generování faktur
-  - Export do PDF
-  - Integration s účetními systémy
-  - Payment tracking
+### **🚧 NEXT IMPLEMENTATION PRIORITY (RELACE 27-29)**
+
+#### 5. Employee Service (`employee-service`) 🚧 **CURRENT RELACE 27**
+**Odpovědnost**: Správa zaměstnanců a external pracovníků
+- **Port**: 3004 (implementing)
+- **Database**: `employee_db` (Google Cloud PostgreSQL)
+- **API Type**: REST endpoints
+- **Key Operations** (🚧 IMPLEMENTING):
+  - GET /employees - Seznam zaměstnanců
+  - POST /employees - Vytvoření zaměstnance
+  - GET /employees/:id - Detail zaměstnance
+  - PUT /employees/:id - Update zaměstnance
+  - Skills management, hourly rates, employment types
+
+#### 6. Project Service (`project-service`) 📋 **PLANNED RELACE 28**
+**Odpovědnost**: Project management, task assignment
+- **Port**: 3005 (planned)
+- **Database**: `project_db` (planned)
+- **API Type**: REST endpoints
+- **Key Operations** (📋 PLANNED):
+  - Project creation and management
+  - Team assignment (employees + externals)
+  - Task breakdown and tracking
+  - Project status workflow
+
+#### 7. Timesheet Service (`timesheet-service`) ⏱️ **PLANNED RELACE 29**
+**Odpovědnost**: Time tracking, work documentation
+- **Port**: 3006 (planned)
+- **Database**: `timesheet_db` (planned)
+- **API Type**: REST endpoints
+- **Key Operations** (⏱️ PLANNED):
+  - Time logging per project/task
+  - Material usage tracking
+  - Photo documentation upload
+  - Weekly/monthly timesheets
+
+---
+
+### **🔮 FUTURE SERVICES (RELACE 30+)**
+
+#### 8. Inventory Service (`inventory-service`) 📦 **FUTURE**
+**Odpovědnost**: Skladové zásoby, material tracking
+- Material inventory management
+- Low stock alerts
+- Supplier management
+
+#### 9. Billing/Invoice Service (`billing-service`) 💰 **FUTURE**
+**Odpovědnost**: Automatická fakturace
+- Invoice generation from timesheets
+- PDF export
+- Payment tracking
 
 #### 6. Notification Service (`notification-service`) 🚧 PLANNED  
 **Odpovědnost**: Komunikace a notifikace

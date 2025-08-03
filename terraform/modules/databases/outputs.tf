@@ -54,14 +54,14 @@ output "root_connection_string" {
 output "monitoring_connection_string" {
   description = "Monitoring user connection string"
   value = var.enable_monitoring_user ? 
-    "postgresql://${google_sql_user.monitoring_user[0].name}:${google_sql_user.monitoring_user[0].password}@${google_sql_database_instance.main.private_ip_address}:5432/postgres" : null
+    "postgresql://${google_sql_user.monitoring_user[0].name}:${google_sql_user.monitoring_user[0].password}@${google_sql_database_instance.main.private_ip_address}:5432/postgres" : ""
   sensitive = true
 }
 
 output "migration_connection_string" {
   description = "Migration user connection string"
   value = var.enable_migration_user ? 
-    "postgresql://${google_sql_user.migration_user[0].name}:${google_sql_user.migration_user[0].password}@${google_sql_database_instance.main.private_ip_address}:5432/postgres" : null
+    "postgresql://${google_sql_user.migration_user[0].name}:${google_sql_user.migration_user[0].password}@${google_sql_database_instance.main.private_ip_address}:5432/postgres" : ""
   sensitive = true
 }
 

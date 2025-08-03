@@ -1,7 +1,6 @@
 const { database } = require('../utils/database')
 const { OrderModel } = require('../models/order.model')
 const { StatusManager } = require('./statusManager')
-const axios = require('axios')
 
 class OrderService {
   constructor() {
@@ -546,17 +545,27 @@ class OrderService {
       // Get customer information via Customer Service API
       const CUSTOMER_SERVICE_URL = process.env.CUSTOMER_SERVICE_URL || 'http://localhost:3002'
       
-      const customerResponse = await axios.get(`${CUSTOMER_SERVICE_URL}/customers/${order.customer_id}`, {
-        timeout: 5000,
-        headers: { 'User-Agent': 'OrderService/1.0.0' }
+      const customerResponse = await fetch(`${CUSTOMER_SERVICE_URL}/customers/${order.customer_id}`, {
+        method: 'GET',
+        headers: { 
+          'User-Agent': 'OrderService/1.0.0',
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
       })
+      
+      if (!customerResponse.ok) {
+        throw new Error(`Customer service responded with ${customerResponse.status}`)
+      }
+      
+      const customerData = await customerResponse.json()
 
-      if (!customerResponse.data.success || !customerResponse.data.data) {
+      if (!customerData.success || !customerData.data) {
         console.error('[OrderService] Customer not found for email notification:', order.customer_id)
         return
       }
 
-      const customer = customerResponse.data.data
+      const customer = customerData.data
       const customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
 
       // Prepare notification data
@@ -575,18 +584,27 @@ class OrderService {
       // Call API Gateway notification endpoint
       const API_GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:3000'
       
-      const response = await axios.post(`${API_GATEWAY_URL}/api/notifications/status-change`, notificationData, {
-        timeout: 5000, // 5 second timeout
+      const response = await fetch(`${API_GATEWAY_URL}/api/notifications/status-change`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'OrderService/1.0.0'
-        }
+          'User-Agent': 'OrderService/1.0.0',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(notificationData),
+        signal: AbortSignal.timeout(5000)
       })
 
-      if (response.data.success) {
-        console.log(`[OrderService] Status change email sent successfully for order ${order.order_number}. MessageID: ${response.data.data.message_id}`)
+      if (!response.ok) {
+        throw new Error(`API Gateway responded with ${response.status}`)
+      }
+
+      const responseData = await response.json()
+      
+      if (responseData.success) {
+        console.log(`[OrderService] Status change email sent successfully for order ${order.order_number}. MessageID: ${responseData.data.message_id}`)
       } else {
-        console.error('[OrderService] Email notification API returned failure:', response.data)
+        console.error('[OrderService] Email notification API returned failure:', responseData)
       }
 
     } catch (error) {

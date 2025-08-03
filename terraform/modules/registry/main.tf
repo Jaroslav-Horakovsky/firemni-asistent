@@ -24,9 +24,7 @@ locals {
   repository_id = "${var.environment}-${var.registry_config.repository_id}"
   
   # All regions (primary + replicas)
-  all_regions = var.enable_multi_region ? 
-    concat([var.region], var.replication_regions) : 
-    [var.region]
+  all_regions = var.enable_multi_region ? concat([var.region], var.replication_regions) : [var.region]
 }
 
 # Primary Artifact Registry Repository

@@ -55,18 +55,14 @@ locals {
   default_service_name = var.load_balancer_config.default_service
   
   # SSL certificate domains
-  ssl_domains = length(var.ssl_certificates.domains) > 0 ? 
-    var.ssl_certificates.domains : 
-    ["${var.project_id}-${var.environment}.example.com"]
+  ssl_domains = length(var.ssl_certificates.domains) > 0 ? var.ssl_certificates.domains : ["${var.project_id}-${var.environment}.example.com"]
 }
 
 # Reserved IP addresses
 resource "google_compute_global_address" "lb_ipv4" {
   count = var.reserved_ip_config.create_ipv4_address ? 1 : 0
   
-  name         = var.reserved_ip_config.ipv4_address_name != "" ? 
-    var.reserved_ip_config.ipv4_address_name : 
-    "${var.project_id}-${var.environment}-lb-ipv4"
+  name         = var.reserved_ip_config.ipv4_address_name != "" ? var.reserved_ip_config.ipv4_address_name : "${var.project_id}-${var.environment}-lb-ipv4"
   project      = var.project_id
   ip_version   = "IPV4"
   address_type = "EXTERNAL"
@@ -77,9 +73,7 @@ resource "google_compute_global_address" "lb_ipv4" {
 resource "google_compute_global_address" "lb_ipv6" {
   count = var.reserved_ip_config.create_ipv6_address ? 1 : 0
   
-  name         = var.reserved_ip_config.ipv6_address_name != "" ? 
-    var.reserved_ip_config.ipv6_address_name : 
-    "${var.project_id}-${var.environment}-lb-ipv6"
+  name         = var.reserved_ip_config.ipv6_address_name != "" ? var.reserved_ip_config.ipv6_address_name : "${var.project_id}-${var.environment}-lb-ipv6"
   project      = var.project_id
   ip_version   = "IPV6"
   address_type = "EXTERNAL"
@@ -255,9 +249,7 @@ resource "google_compute_target_https_proxy" "main" {
   project = var.project_id
   url_map = google_compute_url_map.main.id
   
-  ssl_certificates = var.ssl_certificates.managed_certificate ? 
-    [google_compute_managed_ssl_certificate.ssl_cert[0].id] : 
-    []
+  ssl_certificates = var.ssl_certificates.managed_certificate ? [google_compute_managed_ssl_certificate.ssl_cert[0].id] : []
   
   lifecycle {
     create_before_destroy = true
@@ -299,8 +291,7 @@ resource "google_compute_global_forwarding_rule" "https" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
   port_range           = "443"
   target               = google_compute_target_https_proxy.main.id
-  ip_address           = var.reserved_ip_config.create_ipv4_address ? 
-    google_compute_global_address.lb_ipv4[0].id : null
+  ip_address           = var.reserved_ip_config.create_ipv4_address ? google_compute_global_address.lb_ipv4[0].id : null
   
   labels = local.common_labels
 }
@@ -314,8 +305,7 @@ resource "google_compute_global_forwarding_rule" "http" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
   port_range           = "80"
   target               = google_compute_target_http_proxy.redirect[0].id
-  ip_address           = var.reserved_ip_config.create_ipv4_address ? 
-    google_compute_global_address.lb_ipv4[0].id : null
+  ip_address           = var.reserved_ip_config.create_ipv4_address ? google_compute_global_address.lb_ipv4[0].id : null
   
   labels = local.common_labels
 }
@@ -400,9 +390,7 @@ resource "google_monitoring_uptime_check_config" "lb_uptime_checks" {
     type = "uptime_url"
     labels = {
       project_id = var.project_id
-      host       = var.reserved_ip_config.create_ipv4_address ? 
-        google_compute_global_address.lb_ipv4[0].address : 
-        "example.com"  # Fallback for monitoring
+      host       = var.reserved_ip_config.create_ipv4_address ? google_compute_global_address.lb_ipv4[0].address : "example.com"  # Fallback for monitoring
     }
   }
   

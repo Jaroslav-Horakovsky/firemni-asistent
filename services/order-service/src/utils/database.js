@@ -23,8 +23,8 @@ class DatabaseManager {
 
       console.log('[Database] Connecting to PostgreSQL...')
       
-      // Get database URL from Secret Manager or environment fallback
-      const databaseUrl = await secretsManager.getSecret('DB_ORDER_SERVICE_URL')
+      // Get database URL (prioritizes DATABASE_URL in development)
+      const databaseUrl = await secretsManager.getDatabaseUrl('order')
       
       // Create connection pool
       this.pool = new Pool({

@@ -85,6 +85,12 @@ class SecretsManager {
    * @returns {Promise<string>} Database connection URL
    */
   async getDatabaseUrl(serviceName) {
+    // In development, prioritize DATABASE_URL environment variable
+    if (process.env.NODE_ENV === 'development' && process.env.DATABASE_URL) {
+      console.log(`[SecretsManager] Using DATABASE_URL environment variable for ${serviceName} service`)
+      return process.env.DATABASE_URL
+    }
+    
     const secretName = `DB_${serviceName.toUpperCase()}_SERVICE_URL`
     return await this.getSecret(secretName)
   }
@@ -94,6 +100,12 @@ class SecretsManager {
    * @returns {Promise<string>} JWT signing key
    */
   async getJwtSigningKey() {
+    // In development, prioritize JWT_SECRET environment variable
+    if (process.env.NODE_ENV === 'development' && process.env.JWT_SECRET) {
+      console.log('[SecretsManager] Using JWT_SECRET environment variable')
+      return process.env.JWT_SECRET
+    }
+    
     return await this.getSecret('JWT_SIGNING_KEY')
   }
 
@@ -102,6 +114,12 @@ class SecretsManager {
    * @returns {Promise<string>} JWT refresh key
    */
   async getJwtRefreshKey() {
+    // In development, prioritize JWT_REFRESH_SECRET environment variable
+    if (process.env.NODE_ENV === 'development' && process.env.JWT_REFRESH_SECRET) {
+      console.log('[SecretsManager] Using JWT_REFRESH_SECRET environment variable')
+      return process.env.JWT_REFRESH_SECRET
+    }
+    
     return await this.getSecret('JWT_REFRESH_KEY')
   }
 
