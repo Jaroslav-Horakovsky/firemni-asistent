@@ -1,6 +1,7 @@
 const UserModel = require('../models/user.model')
 const { jwtManager } = require('../utils/jwt')
 const { v4: uuidv4 } = require('uuid')
+const logger = require('../utils/logger')
 
 class AuthService {
   /**
@@ -52,7 +53,11 @@ class AuthService {
         tokens
       }
     } catch (error) {
-      console.error('[AuthService] Registration error:', error.message)
+      logger.error('User registration failed', {
+        error: error.message,
+        email: userData.email,
+        operation: 'register'
+      })
       throw error
     }
   }
@@ -120,7 +125,11 @@ class AuthService {
         tokens
       }
     } catch (error) {
-      console.error('[AuthService] Login error:', error.message)
+      logger.error('User login failed', {
+        error: error.message,
+        email: credentials.email,
+        operation: 'login'
+      })
       throw error
     }
   }
@@ -169,7 +178,10 @@ class AuthService {
         tokens
       }
     } catch (error) {
-      console.error('[AuthService] Token refresh error:', error.message)
+      logger.error('Token refresh failed', {
+        error: error.message,
+        operation: 'refreshToken'
+      })
       throw error
     }
   }
@@ -204,7 +216,10 @@ class AuthService {
         emailVerified: user.email_verified
       }
     } catch (error) {
-      console.error('[AuthService] Token verification error:', error.message)
+      logger.error('Token verification failed', {
+        error: error.message,
+        operation: 'verifyToken'
+      })
       throw error
     }
   }
@@ -234,12 +249,19 @@ class AuthService {
       const success = await UserModel.updatePassword(userId, newPassword)
       
       if (success) {
-        console.log(`[AuthService] Password changed for user: ${userId}`)
+        logger.info('User password changed successfully', {
+          userId,
+          operation: 'changePassword'
+        })
       }
 
       return success
     } catch (error) {
-      console.error('[AuthService] Password change error:', error.message)
+      logger.error('Password change failed', {
+        error: error.message,
+        userId: userData.userId,
+        operation: 'changePassword'
+      })
       throw error
     }
   }
@@ -254,7 +276,10 @@ class AuthService {
       const user = await UserModel.findByEmail(email)
       if (!user) {
         // Don't reveal if email exists or not
-        console.log(`[AuthService] Password reset requested for non-existent email: ${email}`)
+        logger.warn('Password reset requested for non-existent email', {
+          email,
+          operation: 'forgotPassword'
+        })
         return 'reset-requested' // Generic response
       }
 
@@ -268,13 +293,20 @@ class AuthService {
         password_reset_expires: resetExpires
       })
 
-      console.log(`[AuthService] Password reset token generated for user: ${user.id}`)
+      logger.info('Password reset token generated', {
+        userId: user.id,
+        operation: 'forgotPassword'
+      })
       
       // In real app, send email with reset link
       // For now, return token for testing
       return resetToken
     } catch (error) {
-      console.error('[AuthService] Password reset request error:', error.message)
+      logger.error('Password reset request failed', {
+        error: error.message,
+        email: requestData.email,
+        operation: 'forgotPassword'
+      })
       throw error
     }
   }
@@ -306,12 +338,18 @@ class AuthService {
       const success = await UserModel.updatePassword(userId, newPassword)
       
       if (success) {
-        console.log(`[AuthService] Password reset completed for user: ${userId}`)
+        logger.info('Password reset completed successfully', {
+          userId,
+          operation: 'resetPassword'
+        })
       }
 
       return success
     } catch (error) {
-      console.error('[AuthService] Password reset error:', error.message)
+      logger.error('Password reset failed', {
+        error: error.message,
+        operation: 'resetPassword'
+      })
       throw error
     }
   }
@@ -341,7 +379,11 @@ class AuthService {
         updatedAt: user.updated_at
       }
     } catch (error) {
-      console.error('[AuthService] Get profile error:', error.message)
+      logger.error('Get user profile failed', {
+        error: error.message,
+        userId,
+        operation: 'getProfile'
+      })
       throw error
     }
   }
@@ -380,7 +422,11 @@ class AuthService {
         updatedAt: updatedUser.updated_at
       }
     } catch (error) {
-      console.error('[AuthService] Update profile error:', error.message)
+      logger.error('Update user profile failed', {
+        error: error.message,
+        userId,
+        operation: 'updateProfile'
+      })
       throw error
     }
   }

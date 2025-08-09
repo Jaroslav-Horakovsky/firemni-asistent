@@ -140,9 +140,9 @@ class Project {
       
       description: Joi.string().max(5000).optional().allow(null, ''),
       
-      customer_id: Joi.number().integer().positive().required()
+      customer_id: Joi.string().uuid().required()
         .messages({
-          'number.positive': 'Customer ID must be a positive number',
+          'string.uuid': 'Customer ID must be a valid UUID',
           'any.required': 'Customer ID is required'
         }),
       
@@ -189,9 +189,9 @@ class Project {
       
       description: Joi.string().max(5000).optional().allow(null, ''),
       
-      customer_id: Joi.number().integer().positive().optional()
+      customer_id: Joi.string().uuid().optional()
         .messages({
-          'number.positive': 'Customer ID must be a positive number'
+          'string.uuid': 'Customer ID must be a valid UUID'
         }),
       
       order_id: Joi.number().integer().positive().optional().allow(null)
@@ -228,9 +228,9 @@ class Project {
    * @returns {Object} Joi validation result
    */
   static validateId(id) {
-    const schema = Joi.number().integer().positive().required()
+    const schema = Joi.string().uuid().required()
       .messages({
-        'number.positive': 'Project ID must be a positive number',
+        'string.uuid': 'Project ID must be a valid UUID',
         'any.required': 'Project ID is required'
       })
 
@@ -247,7 +247,7 @@ class Project {
       page: Joi.number().integer().min(1).default(1),
       limit: Joi.number().integer().min(1).max(100).default(20),
       status: Joi.string().valid('planning', 'active', 'on-hold', 'completed', 'cancelled').optional(),
-      customer_id: Joi.number().integer().positive().optional(),
+      customer_id: Joi.string().uuid().optional(),
       search: Joi.string().max(255).optional().allow(''),
       sortBy: Joi.string().valid(
         'created_at', 'updated_at', 'name', 'status', 'start_date', 'end_date', 'budget_amount'

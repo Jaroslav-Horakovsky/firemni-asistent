@@ -1,5 +1,6 @@
 const { database } = require('../utils/database')
 const { ProjectAssignmentModel } = require('../models/projectAssignment.model')
+const { ProjectModel } = require('../models/project.model')
 
 class AssignmentController {
   /**
@@ -12,12 +13,14 @@ class AssignmentController {
       console.log('[AssignmentController] Create assignment request:', req.params.projectId, req.body?.employee_id)
 
       // Validate project ID from params
-      const projectId = parseInt(req.params.projectId)
-      if (isNaN(projectId) || projectId <= 0) {
+      const projectId = req.params.projectId
+      const { error: projectIdError } = ProjectModel.validateId(projectId)
+      if (projectIdError) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid project ID',
-          code: 'VALIDATION_ERROR'
+          error: 'Invalid project ID format',
+          code: 'VALIDATION_ERROR',
+          details: projectIdError.details
         })
       }
 
@@ -136,12 +139,14 @@ class AssignmentController {
       console.log('[AssignmentController] Get assignments request:', req.params.projectId)
 
       // Validate project ID
-      const projectId = parseInt(req.params.projectId)
-      if (isNaN(projectId) || projectId <= 0) {
+      const projectId = req.params.projectId
+      const { error: projectIdError } = ProjectModel.validateId(projectId)
+      if (projectIdError) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid project ID',
-          code: 'VALIDATION_ERROR'
+          error: 'Invalid project ID format',
+          code: 'VALIDATION_ERROR',
+          details: projectIdError.details
         })
       }
 
@@ -463,12 +468,13 @@ class AssignmentController {
     try {
       console.log('[AssignmentController] Get employee assignments request:', req.params.employeeId)
 
-      // Validate employee ID
-      const employeeId = parseInt(req.params.employeeId)
-      if (isNaN(employeeId) || employeeId <= 0) {
+      // Validate employee ID (should be UUID)
+      const employeeId = req.params.employeeId
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(employeeId)) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid employee ID',
+          error: 'Invalid employee ID format (must be UUID)',
           code: 'VALIDATION_ERROR'
         })
       }

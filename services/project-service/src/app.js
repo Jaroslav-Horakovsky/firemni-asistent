@@ -42,13 +42,7 @@ app.use(speedLimiter)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
-// Import routes
-const routes = require('./routes')
-
-// Use routes
-app.use('/', routes)
-
-// Health check endpoint
+// Health check endpoint (must be before routes to avoid 404 catch-all)
 app.get('/health', async (req, res) => {
   try {
     console.log('[Server] Health check requested')
@@ -73,8 +67,12 @@ app.get('/health', async (req, res) => {
       console.warn('[Health] JWT check failed:', error.message)
     }
 
+    // Service is operational if critical components (database, JWT) are working
+    // Secrets check is non-critical in development environment
+    const isOperational = databaseHealthy && jwtHealthy
+    
     const healthStatus = {
-      status: (databaseHealthy && secretsHealthy && jwtHealthy) ? 'healthy' : 'degraded',
+      status: isOperational ? (secretsHealthy ? 'healthy' : 'degraded') : 'unhealthy',
       timestamp: new Date().toISOString(),
       service: 'project-service',
       version: '1.0.0',
@@ -88,7 +86,8 @@ app.get('/health', async (req, res) => {
       database_stats: database.getPoolStats()
     }
 
-    const statusCode = healthStatus.status === 'healthy' ? 200 : 503
+    // Return 200 if service is operational (healthy or degraded), 503 only if unhealthy
+    const statusCode = isOperational ? 200 : 503
     console.log('[Server] Health check completed:', healthStatus.status)
     res.status(statusCode).json(healthStatus)
   } catch (error) {
@@ -102,6 +101,11 @@ app.get('/health', async (req, res) => {
   }
 })
 
+// Import routes
+const routes = require('./routes')
+
+// Use routes
+app.use('/', routes)
 
 // 404 handler
 app.use('*', (req, res) => {

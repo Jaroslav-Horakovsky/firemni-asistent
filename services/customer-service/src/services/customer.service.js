@@ -1,5 +1,6 @@
 const { database } = require('../utils/database')
 const { CustomerModel } = require('../models/customer.model')
+const logger = require('../utils/logger')
 
 class CustomerService {
   constructor() {
@@ -13,7 +14,10 @@ class CustomerService {
    */
   async createCustomer(customerData) {
     try {
-      console.log('[CustomerService] Creating new customer:', customerData.companyName)
+      logger.info('Creating new customer', {
+        companyName: customerData.companyName,
+        email: customerData.email
+      })
 
       // Check if customer with email already exists
       const existingCustomer = await this.findByEmail(customerData.email)
@@ -56,10 +60,17 @@ class CustomerService {
       const result = await this.db.query(insertQuery, values)
       const createdCustomer = CustomerModel.fromDatabase(result.rows[0])
 
-      console.log('[CustomerService] Customer created successfully with ID:', createdCustomer.id)
+      logger.info('Customer created successfully', {
+        customerId: createdCustomer.id,
+        companyName: createdCustomer.companyName
+      })
       return createdCustomer
     } catch (error) {
-      console.error('[CustomerService] Error creating customer:', error.message)
+      logger.error('Error creating customer', {
+        error: error.message,
+        companyName: customerData.companyName,
+        email: customerData.email
+      })
       throw error
     }
   }
@@ -71,21 +82,27 @@ class CustomerService {
    */
   async getCustomerById(customerId) {
     try {
-      console.log('[CustomerService] Fetching customer by ID:', customerId)
+      logger.info('Fetching customer by ID', { customerId })
 
       const query = 'SELECT * FROM customers WHERE id = $1'
       const result = await this.db.query(query, [customerId])
 
       if (result.rows.length === 0) {
-        console.log('[CustomerService] Customer not found:', customerId)
+        logger.info('Customer not found', { customerId })
         return null
       }
 
       const customer = CustomerModel.fromDatabase(result.rows[0])
-      console.log('[CustomerService] Customer found:', customer.companyName)
+      logger.info('Customer found', { 
+        customerId,
+        companyName: customer.companyName
+      })
       return customer
     } catch (error) {
-      console.error('[CustomerService] Error fetching customer by ID:', error.message)
+      logger.error('Error fetching customer by ID', {
+        error: error.message,
+        customerId
+      })
       throw error
     }
   }

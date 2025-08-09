@@ -17,7 +17,9 @@
     "http-proxy-middleware": "^2.0.6",
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.2",
-    "stripe": "^12.9.0"
+    "stripe": "^12.9.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

@@ -198,7 +198,14 @@ app.get('/health', async (req, res) => {
       }
     }
 
-    const isHealthy = Object.values(healthChecks.checks).every(check => check === true)
+    // Service is healthy if critical components (database, JWT) are working
+    // Secrets check is non-critical in development environment
+    const criticalChecks = {
+      database: healthChecks.checks.database,
+      jwt: healthChecks.checks.jwt
+    }
+    
+    const isHealthy = Object.values(criticalChecks).every(check => check === true)
     
     res.status(isHealthy ? 200 : 503).json(healthChecks)
   } catch (error) {

@@ -10,6 +10,7 @@ const slowDown = require('express-slow-down')
 const { database } = require('./utils/database')
 const { secretsManager } = require('./utils/secrets')
 const { jwtManager } = require('./utils/jwt')
+const logger = require('./utils/logger')
 
 const app = express()
 const PORT = process.env.PORT || 3003
@@ -73,8 +74,12 @@ app.get('/health', async (req, res) => {
       console.warn('[Health] JWT check failed:', error.message)
     }
 
+    // Service is operational if critical components (database, JWT) are working
+    // Secrets check is non-critical in development environment
+    const isOperational = databaseHealthy && jwtHealthy
+    
     const healthStatus = {
-      status: (databaseHealthy && secretsHealthy && jwtHealthy) ? 'healthy' : 'degraded',
+      status: isOperational ? (secretsHealthy ? 'healthy' : 'degraded') : 'unhealthy',
       timestamp: new Date().toISOString(),
       service: 'order-service',
       version: '1.0.0',
@@ -88,11 +93,16 @@ app.get('/health', async (req, res) => {
       database_stats: database.getPoolStats()
     }
 
-    const statusCode = healthStatus.status === 'healthy' ? 200 : 503
+    // Return 200 if service is operational (healthy or degraded), 503 only if unhealthy
+    const statusCode = isOperational ? 200 : 503
     console.log('[Server] Health check completed:', healthStatus.status)
     res.status(statusCode).json(healthStatus)
   } catch (error) {
-    console.error('[Server] Health check failed:', error.message)
+    logger.error('Health check failed', {
+      error: error.message,
+      endpoint: '/health',
+      service: 'order-service'
+    })
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
@@ -116,7 +126,14 @@ app.use('*', (req, res) => {
 
 // Global error handler
 app.use((error, req, res, next) => {
-  console.error('[Error]', error.stack)
+  logger.error('Global error handler', {
+    error: error.message,
+    stack: error.stack,
+    endpoint: req.originalUrl,
+    method: req.method,
+    userAgent: req.get('User-Agent'),
+    ip: req.ip
+  })
   
   res.status(error.status || 500).json({
     success: false,
@@ -129,32 +146,39 @@ app.use((error, req, res, next) => {
 // Initialize database and start server
 async function startServer() {
   try {
-    console.log('[Server] Starting order-service...')
-    console.log('[Server] Environment:', process.env.NODE_ENV || 'development')
+    logger.info('Starting order-service', {
+      port: PORT,
+      environment: process.env.NODE_ENV || 'development'
+    })
     
     // Initialize database connection
-    console.log('[Server] Connecting to database...')
+    logger.info('Connecting to database')
     await database.connect()
     
     // Create database tables
-    console.log('[Server] Creating database tables...')
+    logger.info('Creating database tables')
     await database.createOrderTables()
     
     // Initialize JWT manager
-    console.log('[Server] Initializing JWT manager...')
+    logger.info('Initializing JWT manager')
     await jwtManager.initialize()
     
     // Start HTTP server
     const server = app.listen(PORT, () => {
-      console.log('[Server] Order service ready on port', PORT)
-      console.log('[Server] Health check: http://localhost:' + PORT + '/health')
-      console.log('[Server] Database: Connected with all tables created')
-      console.log('[Server] RELACE 12A: Database foundation complete!')
+      logger.info('Order service started successfully', {
+        port: PORT,
+        environment: process.env.NODE_ENV || 'development',
+        healthCheck: `http://localhost:${PORT}/health`,
+        status: 'Database connected with all tables created'
+      })
     })
 
     return server
   } catch (error) {
-    console.error('[Server] Failed to start:', error.message)
+    logger.error('Failed to start server', {
+      error: error.message,
+      stack: error.stack
+    })
     process.exit(1)
   }
 }
@@ -164,31 +188,31 @@ const serverPromise = startServer()
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('[Server] SIGTERM received, shutting down gracefully')
+  logger.info('SIGTERM received, shutting down gracefully')
   try {
     const server = await serverPromise
     server.close(async () => {
       await database.disconnect()
-      console.log('[Server] Process terminated')
+      logger.info('Process terminated')
       process.exit(0)
     })
   } catch (error) {
-    console.error('[Server] Error during shutdown:', error.message)
+    logger.error('Error during shutdown', { error: error.message })
     process.exit(1)
   }
 })
 
 process.on('SIGINT', async () => {
-  console.log('[Server] SIGINT received, shutting down gracefully')
+  logger.info('SIGINT received, shutting down gracefully')
   try {
     const server = await serverPromise
     server.close(async () => {
       await database.disconnect()
-      console.log('[Server] Process terminated')
+      logger.info('Process terminated')
       process.exit(0)
     })
   } catch (error) {
-    console.error('[Server] Error during shutdown:', error.message)
+    logger.error('Error during shutdown', { error: error.message })
     process.exit(1)
   }
 })

@@ -10,7 +10,8 @@ const paymentRoutes = require('./routes/payments');
 const notificationRoutes = require('./routes/notifications');
 const analyticsRoutes = require('./routes/analytics');
 const webhookRoutes = require('./routes/webhooks');
-const { authenticateToken, errorHandler, logger } = require('./middleware');
+const { authenticateToken, errorHandler, requestLogger } = require('./middleware');
+const logger = require('./utils/logger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,12 +34,34 @@ app.use(limiter);
 // Webhook routes (BEFORE express.json middleware for raw body parsing)
 app.use('/api/webhooks', webhookRoutes);
 
-// Request parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Conditional request parsing - only for local routes, not proxy routes
+app.use((req, res, next) => {
+  // Only parse JSON for local routes (auth, payments, notifications, analytics)
+  if (req.path.startsWith('/api/auth') || 
+      req.path.startsWith('/api/payments') || 
+      req.path.startsWith('/api/notifications') || 
+      req.path.startsWith('/api/analytics') ||
+      req.path.startsWith('/api/webhooks')) {
+    express.json({ limit: '10mb' })(req, res, next);
+  } else {
+    next();
+  }
+});
+
+app.use((req, res, next) => {
+  // Only parse urlencoded for local routes
+  if (req.path.startsWith('/api/auth') || 
+      req.path.startsWith('/api/payments') || 
+      req.path.startsWith('/api/notifications') || 
+      req.path.startsWith('/api/analytics')) {
+    express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
+  } else {
+    next();
+  }
+});
 
 // Logging middleware
-app.use(logger);
+app.use(requestLogger);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -61,6 +84,8 @@ app.get('/docs', (req, res) => {
       auth: '/api/auth/* -> user-service:3001',
       customers: '/api/customers/* -> customer-service:3002',
       orders: '/api/orders/* -> order-service:3003',
+      employees: '/api/employees/* -> employee-service:3004',
+      projects: '/api/projects/* -> project-service:3005',
       payments: '/api/payments/* -> payment processing',
       notifications: '/api/notifications/* -> email notifications',
       analytics: '/api/analytics/* -> business intelligence & reporting',
@@ -89,16 +114,43 @@ const createServiceProxy = (target, pathRewrite = {}) => {
     target,
     changeOrigin: true,
     pathRewrite,
-    onError: (err, req, res) => {
-      console.error(`[Proxy Error] ${err.message}`);
-      res.status(502).json({
-        success: false,
-        message: 'Service temporarily unavailable',
-        error: 'PROXY_ERROR'
+    timeout: 30000, // 30 seconds timeout
+    proxyTimeout: 30000, // 30 seconds proxy timeout
+    
+    onProxyReq: (proxyReq, req, res) => {
+      logger.debug('Proxy request initiated', {
+        method: req.method,
+        originalUrl: req.originalUrl,
+        targetUrl: `${target}${req.url}`,
+        headers: req.headers
       });
     },
-    onProxyReq: (proxyReq, req, res) => {
-      console.log(`[Proxy] ${req.method} ${req.originalUrl} -> ${target}${req.url}`);
+    
+    onProxyRes: (proxyRes, req, res) => {
+      logger.debug('Proxy response received', {
+        method: req.method,
+        originalUrl: req.originalUrl,
+        statusCode: proxyRes.statusCode,
+        responseTime: new Date() - req.startTime
+      });
+    },
+    
+    onError: (err, req, res) => {
+      logger.error('Proxy request failed', {
+        method: req.method,
+        originalUrl: req.originalUrl,
+        error: err.message,
+        target: target
+      });
+      
+      if (!res.headersSent) {
+        res.status(502).json({
+          success: false,
+          message: 'Service temporarily unavailable',
+          error: 'PROXY_ERROR',
+          details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+      }
     }
   });
 };
@@ -120,6 +172,10 @@ app.use('/api/employees', authenticateToken, createServiceProxy(process.env.EMPL
   '^/api/employees': ''
 }));
 
+app.use('/api/projects', authenticateToken, createServiceProxy(process.env.PROJECT_SERVICE_URL, {
+  '^/api/projects': ''
+}));
+
 // Error handling
 app.use(errorHandler);
 
@@ -135,15 +191,20 @@ app.use('*', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`[API Gateway] Starting on port ${PORT}`);
-  console.log(`[API Gateway] Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`[API Gateway] Health check: http://localhost:${PORT}/health`);
-  console.log(`[API Gateway] Documentation: http://localhost:${PORT}/docs`);
-  console.log(`[API Gateway] Services:`);
-  console.log(`  - User Service: ${process.env.USER_SERVICE_URL}`);
-  console.log(`  - Customer Service: ${process.env.CUSTOMER_SERVICE_URL}`);
-  console.log(`  - Order Service: ${process.env.ORDER_SERVICE_URL}`);
-  console.log(`[API Gateway] External APIs: Stripe ✓, SendGrid ✓`);
+  logger.info('API Gateway started successfully', {
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    healthCheck: `http://localhost:${PORT}/health`,
+    documentation: `http://localhost:${PORT}/docs`,
+    services: {
+      userService: process.env.USER_SERVICE_URL,
+      customerService: process.env.CUSTOMER_SERVICE_URL,
+      orderService: process.env.ORDER_SERVICE_URL,
+      employeeService: process.env.EMPLOYEE_SERVICE_URL,
+      projectService: process.env.PROJECT_SERVICE_URL
+    },
+    externalAPIs: ['Stripe', 'SendGrid']
+  });
 });
 
 module.exports = app;

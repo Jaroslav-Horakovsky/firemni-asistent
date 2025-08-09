@@ -160,9 +160,9 @@ class ProjectTask {
    */
   static validateCreate(data) {
     const schema = Joi.object({
-      project_id: Joi.number().integer().positive().required()
+      project_id: Joi.string().uuid().required()
         .messages({
-          'number.positive': 'Project ID must be a positive number',
+          'string.uuid': 'Project ID must be a valid UUID',
           'any.required': 'Project ID is required'
         }),
       
@@ -175,9 +175,9 @@ class ProjectTask {
       
       description: Joi.string().max(5000).optional().allow(null, ''),
       
-      assigned_employee_id: Joi.number().integer().positive().optional().allow(null)
+      assigned_employee_id: Joi.string().uuid().optional().allow(null)
         .messages({
-          'number.positive': 'Employee ID must be a positive number'
+          'string.uuid': 'Employee ID must be a valid UUID'
         }),
       
       status: Joi.string().valid('todo', 'in_progress', 'completed').default('todo')
@@ -218,9 +218,9 @@ class ProjectTask {
       
       description: Joi.string().max(5000).optional().allow(null, ''),
       
-      assigned_employee_id: Joi.number().integer().positive().optional().allow(null)
+      assigned_employee_id: Joi.string().uuid().optional().allow(null)
         .messages({
-          'number.positive': 'Employee ID must be a positive number'
+          'string.uuid': 'Employee ID must be a valid UUID'
         }),
       
       status: Joi.string().valid('todo', 'in_progress', 'completed').optional()
@@ -254,9 +254,9 @@ class ProjectTask {
    * @returns {Object} Joi validation result
    */
   static validateId(id) {
-    const schema = Joi.number().integer().positive().required()
+    const schema = Joi.string().uuid().required()
       .messages({
-        'number.positive': 'Task ID must be a positive number',
+        'string.uuid': 'Task ID must be a valid UUID',
         'any.required': 'Task ID is required'
       })
 
@@ -272,10 +272,10 @@ class ProjectTask {
     const schema = Joi.object({
       page: Joi.number().integer().min(1).default(1),
       limit: Joi.number().integer().min(1).max(100).default(20),
-      project_id: Joi.number().integer().positive().optional(),
+      project_id: Joi.string().uuid().optional(),
       status: Joi.string().valid('todo', 'in_progress', 'completed').optional(),
       priority: Joi.string().valid('low', 'medium', 'high', 'critical').optional(),
-      assigned_employee_id: Joi.number().integer().positive().optional(),
+      assigned_employee_id: Joi.string().uuid().optional(),
       search: Joi.string().max(255).optional().allow(''),
       sortBy: Joi.string().valid(
         'created_at', 'updated_at', 'name', 'status', 'priority', 'due_date', 'start_date'

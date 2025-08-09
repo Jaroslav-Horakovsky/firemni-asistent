@@ -81,15 +81,15 @@ class ProjectAssignment {
    */
   static validateCreate(data) {
     const schema = Joi.object({
-      project_id: Joi.number().integer().positive().required()
+      project_id: Joi.string().uuid().required()
         .messages({
-          'number.positive': 'Project ID must be a positive number',
+          'string.uuid': 'Project ID must be a valid UUID',
           'any.required': 'Project ID is required'
         }),
       
-      employee_id: Joi.number().integer().positive().required()
+      employee_id: Joi.string().uuid().required()
         .messages({
-          'number.positive': 'Employee ID must be a positive number',
+          'string.uuid': 'Employee ID must be a valid UUID',
           'any.required': 'Employee ID is required'
         }),
       
@@ -138,9 +138,9 @@ class ProjectAssignment {
    * @returns {Object} Joi validation result
    */
   static validateId(id) {
-    const schema = Joi.number().integer().positive().required()
+    const schema = Joi.string().uuid().required()
       .messages({
-        'number.positive': 'Assignment ID must be a positive number',
+        'string.uuid': 'Assignment ID must be a valid UUID',
         'any.required': 'Assignment ID is required'
       })
 
